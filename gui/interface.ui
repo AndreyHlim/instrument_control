@@ -22,7 +22,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,1,0">
+     <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,0,0">
       <item>
        <widget class="QWidget" name="widget" native="true">
         <property name="sizePolicy">
@@ -33,26 +33,42 @@
         </property>
         <property name="minimumSize">
          <size>
-          <width>200</width>
+          <width>350</width>
           <height>839</height>
          </size>
         </property>
         <property name="maximumSize">
          <size>
-          <width>300</width>
+          <width>330</width>
           <height>16777215</height>
          </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true"/>
         </property>
         <widget class="QWidget" name="formLayoutWidget">
          <property name="geometry">
           <rect>
-           <x>0</x>
-           <y>0</y>
-           <width>201</width>
-           <height>841</height>
+           <x>5</x>
+           <y>5</y>
+           <width>341</width>
+           <height>851</height>
           </rect>
          </property>
-         <layout class="QFormLayout" name="layout_ctrl"/>
+         <layout class="QFormLayout" name="layout_left">
+          <property name="horizontalSpacing">
+           <number>0</number>
+          </property>
+          <property name="verticalSpacing">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+         </layout>
         </widget>
        </widget>
       </item>
@@ -66,10 +82,30 @@
         </property>
         <property name="minimumSize">
          <size>
-          <width>1000</width>
+          <width>908</width>
           <height>0</height>
          </size>
         </property>
+        <property name="styleSheet">
+         <string notr="true">border: 1px solid black;</string>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>5</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <layout class="QVBoxLayout" name="layout_mid"/>
+         </item>
+        </layout>
        </widget>
       </item>
       <item>
@@ -82,16 +118,24 @@
         </property>
         <property name="minimumSize">
          <size>
-          <width>200</width>
+          <width>300</width>
           <height>839</height>
          </size>
         </property>
         <property name="maximumSize">
          <size>
-          <width>300</width>
+          <width>360</width>
           <height>16777215</height>
          </size>
         </property>
+        <property name="styleSheet">
+         <string notr="true">border: 1px solid black;</string>
+        </property>
+        <layout class="QFormLayout" name="formLayout_2">
+         <item row="0" column="0">
+          <layout class="QFormLayout" name="layout_right"/>
+         </item>
+        </layout>
        </widget>
       </item>
      </layout>

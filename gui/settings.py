@@ -1,0 +1,33 @@
+
+from PyQt6.QtWidgets import QFormLayout
+
+from controls import CollapsibleSection
+from gui.controls.connect import SECTION_INSTR
+from gui.controls import fsva3013_ctrl as FSVA
+from gui.controls.agilent_33220a import SECTION_SINGEN
+
+
+def set_layout_left(layout: QFormLayout):
+    """Настройка скрывающийхся списков в левой части окна программы."""
+
+    layout.setSpacing(5)
+
+    # 1. Создание секции "ПОДКЛЮЧЕНИЕ К ПРИБОРАМ"
+    sec_indtr = CollapsibleSection("Подключение к приборам")
+    sec_indtr.add_inputs(SECTION_INSTR)
+    sec_indtr._toggle(True)
+
+    # 2. Создание секции "УПРАВЛЕНИЕ ГЕНЕРАТОРОМ НЧ"
+    sec_singen = CollapsibleSection("Управление генератором НЧ")
+    sec_singen.add_inputs(SECTION_SINGEN)
+    sec_singen._toggle(False)
+
+    # 3. Создание секции "АМПЛИТУДА"
+    sec_ampl = CollapsibleSection("Амплитуда")
+    sec_ampl.add_inputs(FSVA.SECTION_AMP)
+    sec_ampl._toggle(False)
+
+    # Добавление секций на форму программы
+    layout.addWidget(sec_indtr)
+    layout.addWidget(sec_singen)
+    layout.addWidget(sec_ampl)
