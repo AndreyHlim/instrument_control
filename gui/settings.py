@@ -27,7 +27,19 @@ def set_layout_left(layout: QFormLayout):
     sec_ampl.add_inputs(FSVA.SECTION_AMP)
     sec_ampl._toggle(False)
 
+    # 4. Создание секции "ЧАСТОТА"
+    sec_freq = CollapsibleSection("Частота")
+    sec_freq.add_inputs(FSVA.SECTION_FREQ)
+    sec_freq._toggle(False)
+
+    # 5. Создание секции "ЧАСТОТА"
+    sec_rbw = CollapsibleSection("RBW, VBW")
+    sec_rbw.add_inputs(FSVA.SECTION_RBW)
+    sec_rbw._toggle(False)
+
     # Добавление секций на форму программы
     layout.addWidget(sec_indtr)
     layout.addWidget(sec_singen)
     layout.addWidget(sec_ampl)
+    layout.addWidget(sec_freq)
+    layout.addWidget(sec_rbw)

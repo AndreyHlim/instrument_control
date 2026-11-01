@@ -1,3 +1,5 @@
+from gui.styles import Style
+
 # ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ АМПЛИТУДОЙ
 SECTION_AMP = [
     # Ref lvl
@@ -9,31 +11,27 @@ SECTION_AMP = [
                 "key": "but_reflvl_up",
                 "text": "▲",
                 "stretch": 1,
+                "style": Style.BUT_SQUARE,
             },
             {
                 'type': 'button',
                 "key": "but_reflvl_down",
                 "text": "▼",
                 "stretch": 1,
+                "style": Style.BUT_SQUARE,
             },
             {
                 "type": "label",
                 "key": "label_reflevel",
-                "stretch": 8,
-                "style": (
-                    "qproperty-alignment: 'AlignHCenter|AlignVCenter'; "
-                    "border: 1px solid #ababab; "  # Тонкая серая рамка
-                    # "border-radius: 2px; "          # Небольшое скругления
-                    # "padding: 2px 5px; "            # Отступы внутри рамки
-                    "background-color: #ffffff;"    # Белый фон под текстом
-                ),
+                "stretch": 1,
+                "style": Style.LBL_BORDER,
             },
             {
                 "type": "combo",
                 "key": "amp_unit",
                 "items": ['dBm', 'dBµV', 'dBmV', 'V',
                           'W', 'dBV', 'dBµV/Hz', 'dBmV/Hz'],
-
+                "stretch": 1,
             },
         ]
     },
@@ -46,33 +44,22 @@ SECTION_AMP = [
                 "key": "but_ref_range_up",
                 "text": "▲",
                 "stretch": 1,
+                "style": Style.BUT_SQUARE,
             },
             {
                 'type': 'button',
                 "key": "but_ref_range_down",
                 "text": "▼",
                 "stretch": 1,
+                "style": Style.BUT_SQUARE,
             },
             {
                 "type": "label",
                 "key": "label_range",
                 "stretch": 8,
-                "style": (
-                    "qproperty-alignment: 'AlignHCenter|AlignVCenter'; "
-                    "border: 1px solid #ababab; "  # Тонкая серая рамка
-                    # "border-radius: 2px; "          # Небольшое скругления
-                    # "padding: 2px 5px; "            # Отступы внутри рамки
-                    "background-color: #ffffff;"    # Белый фон под текстом
-                ),
+                "style": Style.LBL_BORDER,
             },
         ]
-    },
-    # Preamp
-    {
-        "label": "Preamp",
-        "type": "combo",
-        "key": "combo_preamp",
-        "items": ['Off', '15 dB', '30 dB']
     },
     # Atten
     {
@@ -80,28 +67,37 @@ SECTION_AMP = [
         "widgets": [
             {
                 'type': 'button',
+                "key": "but_atten_up",
+                "text": "▲",
+                "stretch": 1,
+                "style": Style.BUT_SQUARE,
+            },
+            {
+                'type': 'button',
                 "key": "but_atten_down",
-                "icon": "gui/icons/left.png",
-                "stretch": 1
+                "text": "▼",
+                "stretch": 1,
+                "style": Style.BUT_SQUARE,
             },
             {
                 "type": "label",
                 "key": "label_atten",
-                "stretch": 8,
-                "style": (
-                    "qproperty-alignment: 'AlignHCenter|AlignVCenter'; "
-                    "border: 1px solid #ababab; "  # Тонкая серая рамка
-                    # "border-radius: 2px; "          # Небольшое скругления
-                    # "padding: 2px 5px; "            # Отступы внутри рамки
-                    "background-color: #ffffff;"    # Белый фон под текстом
-                )
+                "stretch": 1,
+                "style": Style.LBL_BORDER,
             },
             {
-                'type': 'button',
-                "key": "but_atten_up",
-                "icon": "gui/icons/right.png",
-                "stretch": 1
-            }
+                "type": "label",
+                "text": "PreAmp",
+                "stretch": 1,
+                "key": "label_preamp",
+            },
+            {
+                "label": "Preamp",
+                "type": "combo",
+                "key": "combo_preamp",
+                "items": ['Off', '15 dB', '30 dB'],
+                "stretch": 2,
+            },
         ]
     },
 ]
@@ -116,25 +112,21 @@ SECTION_FREQ = [
                 'type': 'button',
                 "key": "but_cf_up",
                 "text": "▲",
-                "stretch": 1
+                "stretch": 1,
+                "style": Style.BUT_SQUARE,
             },
             {
                 'type': 'button',
                 "key": "but_cf_down",
                 "text": "▼",
-                "stretch": 1
+                "stretch": 1,
+                "style": Style.BUT_SQUARE,
             },
             {
                 "type": "label",
                 "key": "label_center",
                 "stretch": 8,
-                "style": (
-                    "qproperty-alignment: 'AlignHCenter|AlignVCenter'; "
-                    "border: 1px solid #ababab; "  # Тонкая серая рамка
-                    # "border-radius: 2px; "          # Небольшое скругления
-                    # "padding: 2px 5px; "            # Отступы внутри рамки
-                    "background-color: #ffffff;"    # Белый фон под текстом
-                )
+                "style": Style.LBL_BORDER,
             },
         ]
     },
@@ -146,31 +138,28 @@ SECTION_FREQ = [
                 'type': 'button',
                 "key": "but_span_up",
                 "text": "▲",
-                "stretch": 1
+                "stretch": 1,
+                "style": Style.BUT_SQUARE,
             },
             {
                 'type': 'button',
                 "key": "but_span_down",
                 "text": "▼",
-                "stretch": 1
+                "stretch": 1,
+                "style": Style.BUT_SQUARE,
             },
             {
                 "type": "label",
                 "key": "label_span",
                 "stretch": 8,
-                "style": (
-                    "qproperty-alignment: 'AlignHCenter|AlignVCenter'; "
-                    "border: 1px solid #ababab; "  # Тонкая серая рамка
-                    # "border-radius: 2px; "          # Небольшое скругления
-                    # "padding: 2px 5px; "            # Отступы внутри рамки
-                    "background-color: #ffffff;"    # Белый фон под текстом
-                )
+                "style": Style.LBL_BORDER,
             },
             {
                 'type': 'button',
                 "key": "but_span_set_stepcf",
                 "text": "=StepCF",
-                "stretch": 1
+                "stretch": 1,
+                "style": Style.H_20,
             },
         ]
 
@@ -186,12 +175,14 @@ SECTION_FREQ = [
                 "max": 5000,
                 "value": 0.001,
                 "stretch": 8,
+                "style": Style.SPIN_BOX,
             },
             {
                 'type': 'button',
                 "key": "but_stepcf_set_span",
                 "text": "=Span",
-                "stretch": 1
+                "stretch": 1,
+                "style": Style.H_20,
             },
         ]
     },
@@ -207,22 +198,20 @@ SECTION_RBW = [
                 "key": "but_rbw_up",
                 "text": "▲",
                 "stretch": 1,
+                "style": Style.BUT_SQUARE,
             },
             {
                 'type': 'button',
                 "key": "but_rbw_down",
                 "text": "▼",
                 "stretch": 1,
+                "style": Style.BUT_SQUARE,
             },
             {
                 "type": "label",
                 "key": "label_rbw",
                 "stretch": 8,
-                "style": (
-                    "qproperty-alignment: 'AlignHCenter|AlignVCenter'; "
-                    "border: 1px solid #ababab; "  # Тонкая серая рамка
-                    "background-color: #ffffff;"    # Белый фон под текстом
-                ),
+                "style": Style.LBL_BORDER,
             },
             {
                 "type": "combo",
@@ -247,22 +236,20 @@ SECTION_RBW = [
                 "key": "but_vbw_up",
                 "text": "▲",
                 "stretch": 1,
+                "style": Style.BUT_SQUARE,
             },
             {
                 'type': 'button',
                 "key": "but_vbw_down",
                 "text": "▼",
                 "stretch": 1,
+                "style": Style.BUT_SQUARE,
             },
             {
                 "type": "label",
                 "key": "label_vbw",
                 "stretch": 8,
-                "style": (
-                    "qproperty-alignment: 'AlignHCenter|AlignVCenter'; "
-                    "border: 1px solid #ababab; "  # Тонкая серая рамка
-                    "background-color: #ffffff;"    # Белый фон под текстом
-                ),
+                "style": Style.LBL_BORDER,
             },
             {
                 "type": "combo",

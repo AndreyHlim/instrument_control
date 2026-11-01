@@ -26,7 +26,7 @@ SECTION_INSTR = [
                 "key": "but_analyzer_web",
                 "icon": "gui/icons/browser.png",
                 "stretch": 1,
-                "style": Style.BUT_WEB,
+                "style": Style.BUT_SQUARE,
             },
         ]
     },
@@ -53,7 +53,7 @@ SECTION_INSTR = [
                 "key": "but_singen_web",
                 "icon": "gui/icons/browser.png",
                 "stretch": 1,
-                "style": Style.BUT_WEB,
+                "style": Style.BUT_SQUARE,
             },
         ]
     },

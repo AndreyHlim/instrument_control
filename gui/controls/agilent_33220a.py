@@ -1,3 +1,5 @@
+from gui.styles import Style
+
 # ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ ГЕНЕРАТОРОМ НЧ
 SECTION_SINGEN = [
     {
@@ -7,9 +9,9 @@ SECTION_SINGEN = [
         "min": 100,
         "max": 20000,
         "value": 1000,
+        "decimals": 0,
         "suffix": " Гц",
-        "style": ("QDoubleSpinBox { qproperty-alignment: "
-                  "'AlignHCenter|AlignVCenter'; }")
+        "style": Style.SPIN_BOX,
     },
     {
         "type": "double",
@@ -19,8 +21,8 @@ SECTION_SINGEN = [
         "max": 4,
         "value": 0.1,
         "suffix": " В",
-        "style": ("QDoubleSpinBox { qproperty-alignment: "
-                  "'AlignHCenter|AlignVCenter'; }")
+        "style": Style.SPIN_BOX,
+
     },
     {
         "label": "Форма сигнала",
@@ -32,6 +34,7 @@ SECTION_SINGEN = [
                           'RAMP', 'NRAMp',
                           'TRIangle', 'NOISe'],
                 "stretch": 4,
+                "style": Style.H_18,
             },
             {
                 "type": "checkbox",

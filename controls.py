@@ -96,7 +96,9 @@ class CollapsibleSection(QWidget):
 
             # Дополнительно центрируем текст на самой плашке закрытого Combobox
             widget.setStyleSheet(
-                "QComboBox {qproperty-alignment: 'AlignHCenter|AlignVCenter';}"
+                "QComboBox {qproperty-alignment: "
+                "'AlignHCenter|AlignVCenter';"
+                "min-height: 18px;max-height: 18px;}"
             )
         elif w_type == "button":
             widget = QPushButton(item.get("text", ""))
