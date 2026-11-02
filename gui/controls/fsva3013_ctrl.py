@@ -1,3 +1,5 @@
+from constaints import (AMP_UNITS, DETECTORS_FSVA, FREQ_DIM, PREAMP_VAL,
+                        RBW_TYPES_FILTER, TRACE_ACC)
 from gui.styles import Style
 
 # ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ АМПЛИТУДОЙ
@@ -29,8 +31,7 @@ SECTION_AMP = [
             {
                 "type": "combo",
                 "key": "amp_unit",
-                "items": ['dBm', 'dBµV', 'dBmV', 'V',
-                          'W', 'dBV', 'dBµV/Hz', 'dBmV/Hz'],
+                "items": AMP_UNITS,
                 "stretch": 1,
             },
         ]
@@ -90,12 +91,13 @@ SECTION_AMP = [
                 "text": "PreAmp",
                 "stretch": 1,
                 "key": "label_preamp",
+                "align": "right",
             },
             {
                 "label": "Preamp",
                 "type": "combo",
                 "key": "combo_preamp",
-                "items": ['Off', '15 dB', '30 dB'],
+                "items": PREAMP_VAL,
                 "stretch": 2,
             },
         ]
@@ -125,7 +127,7 @@ SECTION_FREQ = [
             {
                 "type": "label",
                 "key": "label_center",
-                "stretch": 8,
+                "stretch": 4,
                 "style": Style.LBL_BORDER,
             },
         ]
@@ -151,15 +153,29 @@ SECTION_FREQ = [
             {
                 "type": "label",
                 "key": "label_span",
-                "stretch": 8,
+                "stretch": 3,
                 "style": Style.LBL_BORDER,
             },
             {
                 'type': 'button',
                 "key": "but_span_set_stepcf",
-                "text": "=StepCF",
+                "text": "=Step",
+                "stretch": 2,
+                "style": Style.BUT_SPAN_TO_STEPCF,
+            },
+            {
+                'type': 'button',
+                "key": "but_span_set_div2",
+                "text": "/2",
                 "stretch": 1,
-                "style": Style.H_20,
+                "style": Style.BUT_SQUARE,
+            },
+            {
+                'type': 'button',
+                "key": "but_span_set_mul2",
+                "text": "*2",
+                "stretch": 1,
+                "style": Style.BUT_SQUARE,
             },
         ]
 
@@ -181,8 +197,8 @@ SECTION_FREQ = [
                 'type': 'button',
                 "key": "but_stepcf_set_span",
                 "text": "=Span",
-                "stretch": 1,
-                "style": Style.H_20,
+                "stretch": 2,
+                "style": Style.VAL_CFSTEP_TO_SPAN,
             },
         ]
     },
@@ -190,6 +206,12 @@ SECTION_FREQ = [
 
 # ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ RBW/VBW
 SECTION_RBW = [
+    {
+        "type": "combo",
+        "label": "Тип фильтра",
+        "key": "rbw_type_filter",
+        "items": RBW_TYPES_FILTER,
+    },
     {
         "label": "RBW",
         "widgets": [
@@ -216,7 +238,7 @@ SECTION_RBW = [
             {
                 "type": "combo",
                 "key": "rbw_unit",
-                "items": ['Гц', 'кГц', 'МГц', 'ГГц'],
+                "items": FREQ_DIM,
                 "stretch": 1,
             },
             {
@@ -254,7 +276,7 @@ SECTION_RBW = [
             {
                 "type": "combo",
                 "key": "vbw_unit",
-                "items": ['Гц', 'кГц', 'МГц', 'ГГц'],
+                "items": FREQ_DIM,
                 "stretch": 1,
             },
             {
@@ -264,6 +286,79 @@ SECTION_RBW = [
                 "value": False,
                 "stretch": 1,
             }
+        ]
+    },
+]
+
+# ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ SWEEP
+SECTION_SWEEP = [
+    {
+        "label": "Детектор",
+        "type": "combo",
+        "key": "combo_det",
+        "items": DETECTORS_FSVA,
+    },
+    {
+        "label": "Накопление",
+        "type": "combo",
+        "key": "combo_trace_acc",
+        "items": TRACE_ACC,
+    },
+    {
+        'label': 'Режим Sweep',
+        'widgets': [
+            {
+                'type': 'radio',
+                'key': 'radio_count',
+                'text': 'continuously',
+                'checked': False,
+                "stretch": 1,
+            },
+            {
+                'type': 'radio',
+                'key': 'radio_single',
+                'text': 'single',
+                'checked': False,
+                "stretch": 1,
+            },
+            {
+                "type": "double",
+                "key": "tb_sweep_count",
+                "min": 1,
+                "max": 50,
+                'decimals': 0,
+                "value": 1,
+                "stretch": 1,
+                "style": Style.SPIN_BOX,
+            },
+        ]
+    }
+]
+
+# ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ TRACES
+SECTION_TRACES = [
+
+]
+
+# ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ MARKERS
+SECTION_MRK = [
+    {
+        'label': 'Marker 1',
+        'widgets': [
+            {
+                'type': 'checkbox',
+                'key': 'check_auto_max',
+                'text': 'Автослежение',
+                'value': False,
+                "stretch": 1,
+            },
+            {
+                'type': 'button',
+                "key": "but_mrk_to_cf",
+                "text": "В центр",
+                "stretch": 1,
+                # "style": Style.VAL_CFSTEP_TO_SPAN,
+            },
         ]
     },
 ]

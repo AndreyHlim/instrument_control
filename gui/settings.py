@@ -1,10 +1,10 @@
 
 from PyQt6.QtWidgets import QFormLayout
 
-from controls import CollapsibleSection
-from gui.controls.connect import SECTION_INSTR
 from gui.controls import fsva3013_ctrl as FSVA
 from gui.controls.agilent_33220a import SECTION_SINGEN
+from gui.controls.connect import SECTION_INSTR
+from gui.controls.controls import CollapsibleSection
 
 
 def set_layout_left(layout: QFormLayout):
@@ -37,9 +37,27 @@ def set_layout_left(layout: QFormLayout):
     sec_rbw.add_inputs(FSVA.SECTION_RBW)
     sec_rbw._toggle(False)
 
+    # 6. Создание секции "SWEEP"
+    sec_sweep = CollapsibleSection("Sweep")
+    sec_sweep.add_inputs(FSVA.SECTION_SWEEP)
+    sec_sweep._toggle(False)
+
+    # 7. Создание секции "Traces"
+    sec_traces = CollapsibleSection("Traces")
+    sec_traces.add_inputs(FSVA.SECTION_TRACES)
+    sec_traces._toggle(False)
+
+    # 8. Создание секции "Traces"
+    sec_mrk = CollapsibleSection("Markers")
+    sec_mrk.add_inputs(FSVA.SECTION_MRK)
+    sec_mrk._toggle(False)
+
     # Добавление секций на форму программы
     layout.addWidget(sec_indtr)
     layout.addWidget(sec_singen)
     layout.addWidget(sec_ampl)
     layout.addWidget(sec_freq)
     layout.addWidget(sec_rbw)
+    layout.addWidget(sec_sweep)
+    layout.addWidget(sec_traces)
+    layout.addWidget(sec_mrk)

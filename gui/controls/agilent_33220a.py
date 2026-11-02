@@ -1,3 +1,4 @@
+from constaints import SIGNAL_FORMS
 from gui.styles import Style
 
 # ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ ГЕНЕРАТОРОМ НЧ
@@ -22,7 +23,6 @@ SECTION_SINGEN = [
         "value": 0.1,
         "suffix": " В",
         "style": Style.SPIN_BOX,
-
     },
     {
         "label": "Форма сигнала",
@@ -30,9 +30,7 @@ SECTION_SINGEN = [
             {
                 "type": "combo",
                 "key": "combo_form_sound",
-                "items": ['SINusoid', 'SQUare',
-                          'RAMP', 'NRAMp',
-                          'TRIangle', 'NOISe'],
+                "items": SIGNAL_FORMS,
                 "stretch": 4,
                 "style": Style.H_18,
             },

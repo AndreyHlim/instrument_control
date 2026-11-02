@@ -10,7 +10,7 @@ class Style(StrEnum):
     CONTAINER_HEADER = 'border: none; margin: 0px; padding: 0px;'
     WIDGET_SECTION = '.QWidget { border: none; }'
 
-    # Кнопки перехода по IP адресу прибора для открытия его WEB интерфейса
+    # Поля QLineEdit для ввода значений
     TEXT_BOX = (
         "qproperty-alignment: 'AlignHCenter|AlignVCenter';"
         "min-height: 18px;"
@@ -19,7 +19,7 @@ class Style(StrEnum):
         "background-color: #ffffff;"
     )
 
-    # Кнопки перехода по IP адресу прибора для открытия его WEB интерфейса
+    # Квадратные кнопки
     BUT_SQUARE = (
         "min-height: 20px;"
         "max-height: 20px;"
@@ -31,6 +31,21 @@ class Style(StrEnum):
     H_20 = "min-height: 20px;max-height: 20px;"
     H_18 = "min-height: 18px;max-height: 18px;"
 
+    # Конкретные кнопки
+    BUT_SPAN_TO_STEPCF = (
+        "min-height: 20px;"
+        "max-height: 20px;"
+        "min-width: 50px;"
+        "max-width: 50px;"
+    )
+    VAL_CFSTEP_TO_SPAN = (
+        "min-height: 20px;"
+        "max-height: 20px;"
+        "min-width: 45px;"
+        "max-width: 45px;"
+    )
+
+    # Все QDoubleSpinBox
     SPIN_BOX = (
         "qproperty-alignment:"
         "'AlignHCenter|AlignVCenter';"

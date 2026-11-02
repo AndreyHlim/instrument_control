@@ -2,7 +2,7 @@ import sys
 
 from PyQt6 import uic
 from PyQt6.QtGui import QIcon
-from PyQt6.QtWidgets import QApplication, QMainWindow, QFormLayout
+from PyQt6.QtWidgets import QApplication, QFormLayout, QMainWindow
 
 from function import resource_path
 from gui.settings import set_layout_left

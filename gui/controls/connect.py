@@ -1,6 +1,5 @@
 from gui.styles import Style
 
-
 # ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ ПОДКЛЮЧЕНИЯ К ПРИБОРАМ
 SECTION_INSTR = [
     # Анализатор FSVA3013

@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (QApplication, QCheckBox, QComboBox,
                              QDoubleSpinBox, QGridLayout, QHBoxLayout, QLabel,
                              QLineEdit, QMainWindow, QPushButton, QSizePolicy,
                              QSpacerItem, QSpinBox, QToolButton, QVBoxLayout,
-                             QWidget)
+                             QWidget, QRadioButton)
 
 from function import resource_path
 from gui.styles import Style
@@ -76,6 +76,7 @@ class CollapsibleSection(QWidget):
             widget = QSpinBox()
             widget.setRange(item.get("min", 0), item.get("max", 100))
             widget.setValue(item.get("value", 0))
+
         elif w_type == "double":
             widget = QDoubleSpinBox()
             widget.setDecimals(item.get("decimals", 1))
@@ -84,6 +85,7 @@ class CollapsibleSection(QWidget):
             widget.setSuffix(item.get("suffix", ""))
             if "style" in item:
                 widget.setStyleSheet(item["style"])
+
         elif w_type == "combo":
             widget = QComboBox()
             widget.addItems(item.get("items", []))
@@ -106,7 +108,6 @@ class CollapsibleSection(QWidget):
                 widget.setMaximumWidth(30)
             if "style" in item:
                 widget.setStyleSheet(item["style"])
-            # ИСПРАВЛЕНИЕ: Если в схеме указан путь к иконке, устанавливаем её
             if "icon" in item and item["icon"]:
                 widget.setIcon(QIcon(resource_path(item["icon"])))
                 # Можно также опционально настраивать размер иконки:
@@ -115,10 +116,45 @@ class CollapsibleSection(QWidget):
         elif w_type == "checkbox":
             widget = QCheckBox(item.get("text", ""))
             widget.setChecked(item.get("value", False))
+
+        elif w_type == "radio":
+            widget = QRadioButton(item.get("text", ""))
+            widget.setChecked(item.get("checked", False))
+
+        if w_type == "custom":
+            # Готовый виджет, собранный в коде (таблицы, списки и т.п.)
+            widget = item.get("widget")
+
+        elif w_type in ("vbox", "hbox"):
+            inner = QVBoxLayout() if w_type == "vbox" else QHBoxLayout()
+            inner.setContentsMargins(0, 0, 0, 0)
+            inner.setSpacing(4)
+            for sub in item.get("items", []):
+                if sub.get("type") == "spacer":
+                    inner.addStretch()
+                    continue
+                sub_widget = self._create_single_widget(sub)
+                if sub_widget is not None:
+                    if w_type == "hbox":
+                        inner.addWidget(sub_widget, sub.get("stretch", 0))
+                    else:
+                        inner.addWidget(sub_widget)
+            widget = QWidget()
+            widget.setLayout(inner)
+
         elif w_type == "label":
             widget = QLabel(item.get("text", ""))
+            if item.get("align") == "center":
+                widget.setAlignment(
+                    Qt.AlignmentFlag.AlignHCenter |
+                    Qt.AlignmentFlag.AlignVCenter)
+            elif item.get("align") == "right":
+                widget.setAlignment(
+                    Qt.AlignmentFlag.AlignRight |
+                    Qt.AlignmentFlag.AlignVCenter)
             if "style" in item:
                 widget.setStyleSheet(item["style"])
+
         elif w_type == "text_box":
             widget = QLineEdit(item.get("text", ""))
             if "style" in item:
