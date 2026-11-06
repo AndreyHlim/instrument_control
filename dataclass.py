@@ -8,8 +8,12 @@ class DeviceState:
     levels: list = field(default_factory=list)  # список амплитуд экрана
 
     # RBW, VBW
+    rbw_type: str | None = None
     rbw: float | None = None
     rbw_unit: str | None = None
+    vbw: float | None = None          # в кГц
+    vbw_auto: bool | None = None
+    rbw_auto: bool | None = None
 
     # частоты
     span: float | None = None
@@ -22,6 +26,7 @@ class DeviceState:
     atten: int | None = None
     range_val: float | None = None
     preamp: str | None = None
+    transducer: str | None = None
 
     # Sweep
     det: str | None = None
