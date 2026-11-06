@@ -1,13 +1,11 @@
-import sys
 from typing import Any, Dict, List, Union
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QIcon, QPainter, QPen
-from PyQt6.QtWidgets import (QApplication, QCheckBox, QComboBox,
-                             QDoubleSpinBox, QGridLayout, QHBoxLayout, QLabel,
-                             QLineEdit, QMainWindow, QPushButton, QSizePolicy,
-                             QSpacerItem, QSpinBox, QToolButton, QVBoxLayout,
-                             QWidget, QRadioButton)
+from PyQt6.QtWidgets import (QCheckBox, QComboBox, QDoubleSpinBox, QGridLayout,
+                             QHBoxLayout, QLabel, QLineEdit, QPushButton,
+                             QRadioButton, QSizePolicy, QSpinBox, QToolButton,
+                             QVBoxLayout, QWidget)
 
 from function import resource_path
 from gui.styles import Style
@@ -225,7 +223,17 @@ class CollapsibleSection(QWidget):
                     self.add_row_layout(label, widget)
 
     def connect_callbacks(self, mapping: Dict[str, Any]):
-        """Массовое подключение обработчиков сигналов через словарь"""
+        """Массовое подключение обработчиков сигналов через словарь.
+
+        Сигнал выбирается по типу виджета:
+        QPushButton → clicked; QCheckBox/QRadioButton → toggled;
+        QSpinBox/QDoubleSpinBox → valueChanged; QComboBox → currentTextChanged.
+
+        Note:
+            Виджеты без известного типа (например, QLabel) молча
+            пропускаются. Для радиогруппы подключайте только одну
+            кнопку группы — toggled придёт при любом переключении.
+        """
         for key, callback in mapping.items():
             widget = self.widgets.get(key)
             if not widget:
@@ -233,7 +241,7 @@ class CollapsibleSection(QWidget):
 
             if isinstance(widget, QPushButton):
                 widget.clicked.connect(callback)
-            elif isinstance(widget, QCheckBox):
+            elif isinstance(widget, (QCheckBox, QRadioButton)):
                 widget.toggled.connect(callback)
             elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
                 widget.valueChanged.connect(callback)
@@ -275,113 +283,3 @@ class CollapsibleSection(QWidget):
         self.content_widget.setVisible(checked)
         self.setMaximumHeight(16777215)
         self.updateGeometry()
-
-
-# --- Пример использования иконок в схеме ---
-SECTION2_SCHEMA = [
-    {
-        "label": "Ref lvl, dB",
-        "widgets": [
-            {
-                'type': 'button',
-                "key": "but_reflvl_down",
-                "icon": "gui/icons/left.png",
-                "stretch": 1
-            },
-            {
-                "type": "label",
-                "key": "label_reflevel",
-                "stretch": 8,
-                "style": (
-                    "qproperty-alignment: 'AlignHCenter|AlignVCenter'; "
-                    "border: 1px solid #ababab; "  # Тонкая серая рамка
-                    # "border-radius: 2px; "          # Небольшое скругления
-                    # "padding: 2px 5px; "            # Отступы внутри рамки
-                    "background-color: #ffffff;"    # Белый фон под текстом
-                )
-            },
-            {
-                'type': 'button',
-                "key": "but_reflvl_up",
-                "icon": "gui/icons/right.png",
-                "stretch": 1
-            }
-        ]
-    },
-    {
-        "type": "double",
-        "key": "scan_step",
-        "label": "Шаг перестройки (Гц):",
-        "min": 10.0,
-        "max": 1e6,
-        "value": 1000.0,
-        "suffix": " МГц",
-    },
-    {
-        "type": "int",
-        "key": "threshold",
-        "label": "Порог (дБ):",
-        "min": -120,
-        "max": 0,
-        "value": -80
-    },
-    {
-        "label": "Действие:",
-        "widgets": [
-            {
-                "type": "button",
-                "key": "start_btn",
-                "text": "Запустить",
-            },
-            {
-                "type": "button",
-                "key": "stop_btn",
-                "text": "Стоп",
-            }
-        ]
-    },
-    {
-        "type": "checkbox",
-        "key": "check_on",
-        "label": "Излучение:",
-        "text": "Вкл",
-        "value": True
-    }
-]
-
-
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-
-        self.main_layout = QVBoxLayout(central_widget)
-        self.main_layout.setContentsMargins(20, 20, 20, 20)
-        self.main_layout.setSpacing(0)
-
-        self.sec = CollapsibleSection("Управление процессом")
-        self.sec2 = CollapsibleSection("Управление процессом2")
-        self.sec.add_inputs(SECTION2_SCHEMA)
-        self.sec2.add_inputs(SECTION2_SCHEMA)
-        self.main_layout.addWidget(self.sec)
-        self.sec._toggle(False)
-        self.main_layout.addWidget(self.sec2)
-        self.sec2._toggle(False)
-
-        self.main_layout.addItem(QSpacerItem(0, 0,
-                                             QSizePolicy.Policy.Minimum,
-                                             QSizePolicy.Policy.Expanding))
-        self.resize(450, 400)
-        self.setWindowTitle("Настройка пропорций (stretch)")
-
-
-def main():
-    app = QApplication(sys.argv)
-    win = MainWindow()
-    win.show()
-    sys.exit(app.exec())
-
-
-if __name__ == '__main__':
-    main()

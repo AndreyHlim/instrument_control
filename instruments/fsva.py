@@ -7,6 +7,8 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QMessageBox
 from pyvisa import ResourceManager, VisaIOError
 
+from constants import ANT_NAMES
+
 
 class Dim(IntEnum):
     Hz = 0
@@ -72,7 +74,7 @@ class RS_FSVA3013:
         for name, marker in self._markers.items():
             setattr(self, name, marker)
 
-        # Инициализируем трассы (ограничимся 1–4 - пока должно быть достаточно)
+        # Инициализируем трассы (1–4, а вообще 6 штук их)
         self._traces = {}
         for i in range(1, 5):
             self._traces[f'Trace {i}'] = Trace(
@@ -178,6 +180,15 @@ class RS_FSVA3013:
         rbw = int(float(self._resource.query(':SENS:BAND:RES?')))
         return rbw / (10 ** dim)
 
+    def get_vbw(self, dim: Dim = Dim.Hz) -> float:
+        """
+        Ширина полосы видеополосы в требуемой размерности
+        Args:
+            dim: размерность
+        """
+        vbw = int(float(self._resource.query(':SENS:BAND:VID?')))
+        return vbw / (10 ** dim)
+
     def set_rbw(self, rbw: float, dim: Dim = Dim.Hz):
         """
         Установить ширину полосы пропускания в требуемой размерности
@@ -189,6 +200,39 @@ class RS_FSVA3013:
         if rbw_hz > cur_span:
             self.set_span(rbw_hz)
         self._resource.write(f':SENS:BAND:RES {rbw_hz}')
+
+    def set_vbw(self, vbw: float, dim: Dim = Dim.Hz):
+        """
+        Установить видеоширину в требуемой размерности
+        Args:
+            dim: размерность
+        """
+        vbw_hz = int(vbw * (10 ** dim))
+        self._resource.write(f':SENS:BAND:VID {vbw_hz}')
+
+    def set_rbw_auto(self, state: bool = False):
+        """Установить/отключить авто RBW"""
+        if state:
+            self._resource.write(':SENS:BAND:RES:AUTO ON')
+            return
+        self._resource.write(':SENS:BAND:RES:AUTO OFF')
+
+    def set_vbw_auto(self, state: bool = False):
+        """Установить/отключить авто VBW"""
+        if state:
+            self._resource.write(':SENS:BAND:VID:AUTO ON')
+            return
+        self._resource.write(':SENS:BAND:VID:AUTO OFF')
+
+    def is_rbw_auto_on(self) -> bool:
+        """Установлена ли RBV в авто?"""
+        is_rbw_auto_on = self._resource.query(':SENS:BAND:RES:AUTO?')
+        return is_rbw_auto_on == '1'
+
+    def is_vbw_auto_on(self) -> bool:
+        """Установлена ли RBV в авто?"""
+        is_vbw_auto_on = self._resource.query(':SENS:BAND:VID:AUTO?')
+        return is_vbw_auto_on == '1'
 
     def get_cf(self, dim: Dim = Dim.Hz) -> float:
         """Текущая центральная частота анализатора спектра.
@@ -274,6 +318,40 @@ class RS_FSVA3013:
         """Увеличесние SPAN'a "стрелочкой"."""
         self._resource.write(':FREQ:SPAN UP')
 
+    def imm_emit(self) -> bool:
+        """Пнуть обновления измерений"""
+        return self._resource.query(':INIT;*OPC?') == '1'
+
+    def set_type_filter_rbw(self, type: str):
+        """Установить тип фильтр RBW."""
+        val_set = {
+            'Normal (3dB)': 'NORM',
+            'CISPR (6dB)': 'PULS',
+            'Cannel': 'CFIL',
+            'RRC': 'RRC',
+            '5-Pole': 'P5',
+            'MIL (6dB)': 'MIL',
+        }
+        if type not in val_set:
+            print(f'Неверный параметр. Допустимые значения: {val_set.keys()}')
+            return
+        self._resource.write(f':SENS:BAND:RES:TYPE {val_set[type]}')
+
+    def get_type_filter_rbw(self) -> str | None:
+        """Установить тип фильтр RBW."""
+        val_set = {
+            'NORM': 'Normal (3dB)',
+            'PULS': 'CISPR (6dB)',
+            'CFIL': 'Cannel',
+            'RRC': 'RRC',
+            'P5': '5-Pole',
+            'MIL': 'MIL (6dB)',
+        }
+        val = self._resource.query(':SENS:BAND:RES:TYPE?')
+        if val in val_set:
+            return val_set[val]
+        return None
+
     def get_step_freq(self, dim: Dim = Dim.Hz):
         """
         Узнать шаг по частоте
@@ -342,6 +420,14 @@ class RS_FSVA3013:
     def rbw_up(self):
         """Увеличение RBW "стрелочкой"."""
         self._resource.write(':SENS:BAND:RES UP')
+
+    def vbw_up(self):
+        """Увеличение VBW "стрелочкой"."""
+        self._resource.write(':BAND:VID UP')
+
+    def vbw_down(self):
+        """Уменьшение VBW "стрелочкой"."""
+        self._resource.write(':BAND:VID DOWN')
 
     def rbw_auto(self):
         """Поставить "Авто" для rbw"""
@@ -427,6 +513,32 @@ class RS_FSVA3013:
     def get_unit_ampl(self) -> str:
         """Получить единицы измерений по оси Y (Амплитуды сигналов)."""
         return self._resource.query('CALC:UNIT:POW?')
+
+    def on_corr_tran(self) -> bool:
+        """Узнать используются ли калибровочные поправки в амплитуде."""
+        tran_sel = self._resource.query(':SENS:CORR:TRAN:SEL?')
+        if tran_sel == "''":
+            return False
+        else:
+            return self._resource.query(':SENS:CORR:TRAN:STAT?') == '1'
+
+    def set_corr_tran(self, trans: str | None):
+        """Установить калибровочную поправку амплитуд."""
+        self._resource.write(':SENS:CORR:TRAN:STAT OFF')
+        self._resource.write(":SENS:CORR:TRAN:SEL ''")
+        if trans is None or trans == "''":
+            return
+        ant_name_fsva = {v: k for k, v in ANT_NAMES.items()}
+        self._resource.write(f":SENS:CORR:TRAN:SEL {ant_name_fsva[trans]}")
+        self._resource.write(':SENS:CORR:TRAN:STAT ON')
+
+    def get_name_corr_tran(self) -> str:
+        """Получить название калибровочной таблицы."""
+        ant_name_fsva = self._resource.query(':SENS:CORR:TRAN:SEL?')
+        if ant_name_fsva not in ANT_NAMES:
+            self.set_corr_tran(trans=None)
+            ant_name_fsva = "''"
+        return ANT_NAMES[ant_name_fsva]
 
     def get_mrk_x(self, dim: Dim = Dim.Hz, mrk_num: int = 0) -> float:
         """Значение частоты активного маркера
@@ -528,6 +640,7 @@ class RS_FSVA3013:
             'DBVP': 'dBV',
             'DBUV_HZ': 'dBµV/Hz',
             'DBMV_HZ': 'dBmV/Hz',
+            'DBUV/M': 'dBµV/m',
         }
         return val_set[amp_unit_val]
 
@@ -550,6 +663,7 @@ class RS_FSVA3013:
             'dBV': 'DBVP',
             'dBµV/Hz': 'DBUV_HZ',
             'dBmV/Hz': 'DBMV_HZ',
+            'dBmV/m': 'DBUV/M',
         }
         if val not in val_set:
             return

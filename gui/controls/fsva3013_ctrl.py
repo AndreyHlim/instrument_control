@@ -1,5 +1,5 @@
-from constaints import (AMP_UNITS, DETECTORS_FSVA, FREQ_DIM, PREAMP_VAL,
-                        RBW_TYPES_FILTER, TRACE_ACC)
+from constants import (AMP_UNITS, ANT_NAMES, DETECTORS_FSVA, FREQ_DIM,
+                       PREAMP_VAL, RBW_TYPES_FILTER, TRACE_ACC)
 from gui.styles import Style
 
 # ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ АМПЛИТУДОЙ
@@ -101,6 +101,12 @@ SECTION_AMP = [
                 "stretch": 2,
             },
         ]
+    },
+    {
+        'type': 'combo',
+        'label': 'Калибровка',
+        'key': 'combo_transducer',
+        'items': ANT_NAMES.values(),
     },
 ]
 
@@ -296,13 +302,13 @@ SECTION_SWEEP = [
         "label": "Детектор",
         "type": "combo",
         "key": "combo_det",
-        "items": DETECTORS_FSVA,
+        "items": DETECTORS_FSVA.keys(),
     },
     {
         "label": "Накопление",
         "type": "combo",
         "key": "combo_trace_acc",
-        "items": TRACE_ACC,
+        "items": TRACE_ACC.keys(),
     },
     {
         'label': 'Режим Sweep',

@@ -1,4 +1,4 @@
-from constaints import SIGNAL_FORMS
+from constants import SIGNAL_FORMS
 from gui.styles import Style
 
 # ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ ГЕНЕРАТОРОМ НЧ
