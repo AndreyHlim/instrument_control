@@ -19,7 +19,7 @@ class PlotMixin:
 
         Делает однократную инициализацию: пустая кривая трассы, пулы
         линий сетки (20 горизонтальных, 9 вертикальных), текстовые
-        метки CF/Span/цена деления, оси, фиксация диапазонов и
+        метки CF/Span/цена деления/RBW-VBW, оси, фиксация диапазонов и
         дебаунс-таймер для ручного изменения диапазона X мышкой.
 
         Note:
@@ -33,9 +33,12 @@ class PlotMixin:
         # Защита от дублей при пересоздании
         if hasattr(self, '_curve') and self._curve is not None:
             self.plotWidget.removeItem(self._curve)
-        for attr in ('_cf_label', '_span_label', '_perdiv_label'):
+        scene = self.plotWidget.scene()
+        for attr in (
+            '_cf_label', '_span_label', '_perdiv_label', '_rvbw_label'
+        ):
             if hasattr(self, attr) and getattr(self, attr) is not None:
-                self.plotWidget.removeItem(getattr(self, attr))
+                scene.removeItem(getattr(self, attr))
         for attr in ('_hgrid_lines', '_vgrid_lines'):
             for line in getattr(self, attr, []):
                 self.plotWidget.removeItem(line)
@@ -65,21 +68,38 @@ class PlotMixin:
         self._span_label = pg.TextItem(text='', color="#000000", anchor=(1, 1))
         self._perdiv_label = pg.TextItem(
             text='', color="#000000", anchor=(0.5, 1))
+        self._rvbw_label = pg.TextItem(
+            text='', color="#000000", anchor=(0.5, 1))
 
-        for label in (self._cf_label, self._span_label, self._perdiv_label):
-            self.plotWidget.addItem(label)
-
-        self.plotWidget.setLabel('bottom', 'Частота', units='Hz')
+        # Метки добавляем прямо в сцену: их позиция задаётся в ПИКСЕЛЯХ
+        # области графика, поэтому при панорамировании они не движутся
+        # вместе с полотном — позиции в координатах данных ездили бы
+        for label in (
+            self._cf_label, self._span_label,
+            self._perdiv_label, self._rvbw_label,
+        ):
+            self.plotWidget.scene().addItem(label)
+        self.plotWidget.getAxis('bottom').enableAutoSIPrefix(False)
+        self.plotWidget.setLabel('bottom', 'Частота')
         self.plotWidget.setLabel('left', 'Уровень', units='дБ')
 
         self.plotWidget.getAxis('left').enableAutoSIPrefix(False)
 
-        # Оси сверху/справа для отступов
-        self.plotWidget.setLabel('top', ' ')
-        self.plotWidget.setLabel('right', ' ')
-        self.plotWidget.getAxis('top').setStyle(showValues=False)
-        self.plotWidget.getAxis('top').enableAutoSIPrefix(False)
-        self.plotWidget.getAxis('right').setStyle(showValues=False)
+        # Границы полотна: оси top/right показываем пустыми —
+        # от них остаётся только линия (засечки и подписи заглушены)
+        pi = self.plotWidget.getPlotItem()
+        pi.layout.setContentsMargins(0, 25, 25, 5)  # лево, верх, право, низ
+        pi.showAxis('top')
+        pi.showAxis('right')
+        for side in ('top', 'right'):
+            axis = self.plotWidget.getAxis(side)
+            axis.setStyle(showValues=False, tickLength=0)
+            axis.setTicks([[], []])   # major и minor уровни — пустые
+
+        # Нижняя и левая оси: только подписи, без засечек —
+        # сетку рисуют наши линии
+        self.plotWidget.getAxis('bottom').setStyle(tickLength=0)
+        self.plotWidget.getAxis('left').setStyle(tickLength=0)
 
         self.plotWidget.setMouseEnabled(x=True, y=False)  # X—мышка, Y—прибор
         self.plotWidget.enableAutoRange(x=False)
@@ -91,6 +111,9 @@ class PlotMixin:
         self._current_y_max: float | None = None
         self._current_reflevel: float | None = None
         self._current_range: float | None = None
+        # Последние строки RBW/VBW для метки на графике
+        self._rbw_str: str = ''
+        self._vbw_str: str = ''
 
         # --- Дебаунс для ручного изменения X ---
         self._updating_from_state = False
@@ -103,20 +126,66 @@ class PlotMixin:
         # Сигнал изменения диапазона
         vb = self.plotWidget.getPlotItem().getViewBox()
         vb.sigRangeChanged.connect(self._on_x_range_changed)
+        vb.sigResized.connect(self._reposition_labels)
         self.plotWidget.showGrid(x=False, y=True)
 
-    def _on_x_range_changed(self, viewbox, ranges) -> None:
-        """Срабатывает при перетаскивании/зуме оси X мышкой.
+    def _reposition_labels(self) -> None:
+        """Метки в пикселях: при изменении геометрии окна перепривязать."""
+        if self._current_x_min is None or self._current_x_max is None:
+            return
+        self._update_info_labels(self._current_x_min, self._current_x_max)
 
-        Сохраняет новый диапазон в self._pending_x_range и запускает
-        дебаунс-таймер (300 мс) для отправки команд set_cf/set_span.
-        Параллельно переставляет вертикальные линии сетки и обновляет
-        текстовые метки, чтобы график реагировал на лету.
+    def _update_x_grid(self, x_min: float, x_max: float) -> None:
+        """Выровнять вертикальные линии сетки и деления оси X по окну.
 
-        Args:
-            viewbox: источник сигнала (ViewBox, не используется).
-            ranges: кортеж ((x_min, x_max), (y_min, y_max)).
+        Линии и деления привязаны к видимой области (10 делений), а не
+        к «красивым» значениям частоты — при панорамировании остаются
+        на местах, меняются только числа под ними. Единица измерения
+        выбирается по абсолютному значению центра окна (как на приборе)
+        и выводится в названии оси.
         """
+        x_span = x_max - x_min
+        if x_span <= 0:
+            return
+        x_step = x_span / 10.0
+
+        # Размерность — по центру окна, а не по шагу: окно вокруг 1 ГГц
+        # остаётся в ГГц независимо от ширины span
+        abs_center = abs((x_min + x_max) / 2)
+        if abs_center >= 1e9:
+            unit, div = 'ГГц', 1e9
+        elif abs_center >= 1e6:
+            unit, div = 'МГц', 1e6
+        elif abs_center >= 1e3:
+            unit, div = 'кГц', 1e3
+        else:
+            unit, div = 'Гц', 1
+
+        # Знаков после запятой — столько, чтобы соседние деления
+        # различались при любом шаге
+        step_scaled = x_step / div
+        if step_scaled >= 10:
+            dec = 0
+        elif step_scaled >= 1:
+            dec = 1
+        elif step_scaled >= 0.1:
+            dec = 2
+        else:
+            dec = 3
+
+        ticks = [
+            (x_min + i * x_step, f'{(x_min + i * x_step) / div:.{dec}f}')
+            for i in range(11)
+        ]
+        axis_bottom = self.plotWidget.getAxis('bottom')
+        axis_bottom.setTicks([ticks])
+        axis_bottom.setLabel(f'Частота ({unit})')
+
+        for i, line in enumerate(self._vgrid_lines):
+            line.setPos(x_min + (i + 1) * x_step)
+
+    def _on_x_range_changed(self, viewbox, ranges) -> None:
+        """Срабатывает при перетаскивании/зуме оси X мышкой."""
         if self._updating_from_state:
             return
         x_range = ranges[0]
@@ -124,19 +193,7 @@ class PlotMixin:
         self._pending_x_range = (x_min, x_max)
         self._x_debounce.start()
 
-        # --- На лету переставляем вертикальные линии ---
-        x_span = x_max - x_min
-        if x_span > 0:
-            x_step = x_span / 10.0
-            for i, line in enumerate(self._vgrid_lines):
-                if i < 9:
-                    line.setPos(x_min + (i + 1) * x_step)
-                    line.setVisible(True)
-                else:
-                    line.setVisible(False)
-            self.plotWidget.getAxis('bottom').setTickSpacing(
-                major=x_step, minor=x_step)
-
+        self._update_x_grid(x_min, x_max)
         self._update_info_labels(x_min, x_max)
 
     def _update_info_labels(self, x_min, x_max):
@@ -154,7 +211,13 @@ class PlotMixin:
         if self._current_y_min is None or self._current_y_max is None:
             return
 
-        y_pos = self._current_y_min
+        # Область графика в пикселях: левая/правая кромки и низ.
+        # Позиции больше не зависят от преобразования вида —
+        # полотно может панорамироваться сколько угодно, метки на месте
+        vb = self.plotWidget.getPlotItem().getViewBox()
+        rect = vb.boundingRect()
+        x_px = rect.left() + 50
+        y_px = rect.bottom() + 20
 
         center_hz = (x_min + x_max) / 2
         span_hz = x_max - x_min
@@ -162,13 +225,19 @@ class PlotMixin:
 
         self._cf_label.setText(
             f'CF = {self._format_freq(center_hz, force_decimals=6)}')
-        self._cf_label.setPos(x_min, y_pos)
+        self._cf_label.setPos(x_px, y_px)
+
+        # Раскладка меток по долям ширины окна (подбирается по вкусу)
+        self._perdiv_label.setText(f'{self._format_freq(per_div_hz)} /')
+        self._perdiv_label.setPos(x_px + 0.35 * rect.width(), y_px)
+
+        if self._rbw_str and self._vbw_str:
+            self._rvbw_label.setText(
+                f'RBW/VBW = {self._rbw_str}/{self._vbw_str}')
+            self._rvbw_label.setPos(x_px + 0.65 * rect.width(), y_px)
 
         self._span_label.setText(f'Span = ±{self._format_freq(span_hz/2)}')
-        self._span_label.setPos(x_max, y_pos)
-
-        self._perdiv_label.setText(f'{self._format_freq(per_div_hz)} /')
-        self._perdiv_label.setPos(center_hz, y_pos)
+        self._span_label.setPos(rect.right()+50, y_px)
 
     def _format_freq(
         self, hz: float, force_decimals: int | None = None, dim: str = ''
@@ -283,25 +352,15 @@ class PlotMixin:
                 vb.setRange(xRange=(x_min, x_max), padding=0)
                 self._updating_from_state = False
 
-                x_span = x_max - x_min
-                if x_span > 0:
-                    x_step = x_span / 10.0
-                else:
-                    x_step = 1e6
+                self._update_x_grid(x_min, x_max)
 
-                # Двигаем вертикальные линии (ровно 9 линий для 10 клеток)
-                for i, line in enumerate(self._vgrid_lines):
-                    line.setPos(x_min + (i + 1) * x_step)
+                # Метки CF/Span/цена деления привязаны к окну X —
+                # обновляем при любой смене диапазона
+                self._update_info_labels(x_min, x_max)
 
-                # --- Подписи по Y: строго каждые 10 дБ ---
+                # Подписи по Y: строго каждые 10 дБ
                 axis_left = self.plotWidget.getAxis('left')
-                axis_bottom = self.plotWidget.getAxis('bottom')
-
-                # Для Y фиксируем шаг 10 (major=10, minor=10)
                 axis_left.setTickSpacing(major=10, minor=10)
-
-                # Для X оставляем «10 делений» по диапазону
-                axis_bottom.setTickSpacing(major=x_step, minor=x_step)
 
         # --- Храним последние значения reflevel и range ---
         if state.reflevel is not None:
@@ -346,14 +405,26 @@ class PlotMixin:
                     self._hgrid_lines[idx].setVisible(False)
                     idx += 1
 
-                self.plotWidget.getAxis('left').setTickSpacing(
-                    major=10, minor=10)
                 if (
                     self._current_x_min is not None
                     and self._current_x_max is not None
                 ):
                     self._update_info_labels(
                         self._current_x_min, self._current_x_max)
+
+        # --- RBW/VBW для подписи на графике ---
+        rvbw_changed = False
+        if state.rbw is not None:
+            self._rbw_str = self._format_freq(state.rbw * 1e3)
+            rvbw_changed = True
+        if state.vbw is not None:
+            self._vbw_str = self._format_freq(state.vbw * 1e3)
+            rvbw_changed = True
+        if rvbw_changed and (
+            self._current_x_min is not None
+            and self._current_x_max is not None
+        ):
+            self._update_info_labels(self._current_x_min, self._current_x_max)
 
         # Параметры (None = не опрашивался в этом кадре)
         self._apply_state_params(state)
