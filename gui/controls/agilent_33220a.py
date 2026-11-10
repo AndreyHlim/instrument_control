@@ -4,25 +4,36 @@ from gui.styles import Style
 # ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ ГЕНЕРАТОРОМ НЧ
 SECTION_SINGEN = [
     {
-        "type": "double",
-        "key": "tb_freq_sin",
         "label": "Частота",
-        "min": 100,
-        "max": 20000,
-        "value": 1000,
-        "decimals": 0,
-        "suffix": " Гц",
-        "style": Style.SPIN_BOX,
-    },
-    {
-        "type": "double",
-        "key": "tb_lvl_sound",
-        "label": "Напряжение",
-        "min": 0,
-        "max": 4,
-        "value": 0.1,
-        "suffix": " В",
-        "style": Style.SPIN_BOX,
+        'widgets': [
+            {
+                "type": "double",
+                "key": "tb_freq_sin",
+                "min": 100,
+                "max": 20000,
+                "value": 1000,
+                "decimals": 0,
+                "suffix": " Гц",
+                "style": Style.SPIN_BOX,
+                "stretch": 2,
+            },
+            {
+                'type': 'label',
+                'text': 'Напряжение',
+                "stretch": 2,
+            },
+            {
+                "type": "double",
+                "key": "tb_lvl_sound",
+                "label": "Напряжение",
+                "min": 0,
+                "max": 4,
+                "value": 0.1,
+                "suffix": " В",
+                "style": Style.SPIN_BOX,
+                "stretch": 2,
+            },
+        ]
     },
     {
         "label": "Форма сигнала",
@@ -39,7 +50,7 @@ SECTION_SINGEN = [
                 "key": "check_on_sound",
                 "text": "Вкл",
                 "value": False,
-                "stretch": 1,
+                "stretch": 2,
             }
         ]
     },
