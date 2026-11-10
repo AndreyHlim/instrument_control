@@ -79,9 +79,12 @@ class TraceWorker(QObject):
             'cf_up': ('center', 'freq_start', 'freq_stop'),
             'cf_down': ('center', 'freq_start', 'freq_stop'),
             'reflvl_up': 'reflevel', 'reflvl_down': 'reflevel',
+            'set_reflvl': 'reflevel',
             'amp_unit': 'amp_unit', 'transducer': 'transducer',
-            'ref_range_up': 'range', 'ref_range_down': 'range',
             'atten_up': 'atten', 'atten_down': 'atten',
+            'set_atten': 'atten',
+            'ref_range_up': 'range', 'ref_range_down': 'range',
+            'set_ref_range': 'range',
             'preamp': 'preamp', 'cfstep_set': 'cfstep',
             'set_cf': ('center', 'freq_start', 'freq_stop'),
             'set_span': ('span', 'freq_start', 'freq_stop'),
@@ -276,6 +279,15 @@ class TraceWorker(QObject):
             self._analyzer.set_reflvl_up(True)
         elif cmd == 'reflvl_down':
             self._analyzer.set_reflvl_up(False)
+        elif cmd.startswith('set_reflvl:'):
+            val = float(cmd.split('set_reflvl:', 1)[1])
+            self._analyzer.set_reflvl(val)
+        elif cmd.startswith('set_atten:'):
+            val = int(float(cmd.split('set_atten:', 1)[1]))
+            self._analyzer.set_atten(val)
+        elif cmd.startswith('set_ref_range:'):
+            val = float(cmd.split('set_ref_range:', 1)[1])
+            self._analyzer.set_ref_range(val)
         elif cmd.startswith('amp_unit:'):
             val = cmd.split('amp_unit:', 1)[1]
             self._analyzer.set_amp_unit(val)

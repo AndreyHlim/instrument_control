@@ -161,6 +161,10 @@ class CollapsibleSection(QWidget):
             widget = FreqLineEdit(item.get("text", ""))
             if "style" in item:
                 widget.setStyleSheet(item["style"])
+        elif w_type == "value_edit":
+            widget = ValueLineEdit(item.get("text", ""))
+            if "style" in item:
+                widget.setStyleSheet(item["style"])
 
         if widget and key:
             self.widgets[key] = widget
@@ -261,6 +265,8 @@ class CollapsibleSection(QWidget):
                 widget.currentTextChanged.connect(cb)
             elif isinstance(widget, FreqLineEdit):
                 widget.freq_accepted.connect(cb)
+            elif isinstance(widget, ValueLineEdit):
+                widget.value_accepted.connect(cb)
 
     def get_values(self) -> Dict[str, Any]:
         values = {}
@@ -386,3 +392,41 @@ class FreqLineEdit(QLineEdit):
         self.setModified(False)
         self.clearFocus()
         self.freq_accepted.emit(value_hz)
+
+
+class ValueLineEdit(QLineEdit):
+    """Числовое поле без размерности: коммит по Enter.
+
+    Отличия от FreqLineEdit: нет клавиш-суффиксов и колеса, допускается
+    знак минус (референсный уровень бывает отрицательным).
+    """
+
+    value_accepted = pyqtSignal(float)
+
+    def __init__(self, text: str = '', parent=None):
+        super().__init__(text, parent)
+        validator = QRegularExpressionValidator(
+            QRegularExpression(r'-?\d*[.,]?\d*'), self)
+        self.setValidator(validator)
+
+    def focusInEvent(self, event) -> None:
+        super().focusInEvent(event)
+        QTimer.singleShot(0, self.selectAll)
+
+    def keyPressEvent(self, event) -> None:
+        if event.key() in (Qt.Key.Key_Enter, Qt.Key.Key_Return):
+            if self.isModified():
+                self._commit()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def _commit(self) -> None:
+        """Разобрать число, отправить сигнал и уйти из редактирования."""
+        try:
+            value = float(self.text().strip().replace(',', '.'))
+        except ValueError:
+            return
+        self.setModified(False)
+        self.clearFocus()
+        self.value_accepted.emit(value)

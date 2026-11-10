@@ -23,7 +23,7 @@ SECTION_AMP = [
                 "style": Style.BUT_SQUARE,
             },
             {
-                "type": "label",
+                "type": "value_edit",
                 "key": "label_reflevel",
                 "stretch": 1,
                 "style": Style.LBL_BORDER,
@@ -55,7 +55,7 @@ SECTION_AMP = [
                 "style": Style.BUT_SQUARE,
             },
             {
-                "type": "label",
+                "type": "value_edit",
                 "key": "label_range",
                 "stretch": 8,
                 "style": Style.LBL_BORDER,
@@ -81,7 +81,7 @@ SECTION_AMP = [
                 "style": Style.BUT_SQUARE,
             },
             {
-                "type": "label",
+                "type": "value_edit",
                 "key": "label_atten",
                 "stretch": 1,
                 "style": Style.LBL_BORDER,

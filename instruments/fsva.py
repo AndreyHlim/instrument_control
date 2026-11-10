@@ -18,8 +18,8 @@ class Dim(IntEnum):
 
 
 class RS_FSVA3013:
-    FREQ_MIN_HZ = 10  # 100 кГц
-    FREQ_MAX_HZ = 13e9   # 20 ГГц
+    FREQ_MIN_HZ = 10
+    FREQ_MAX_HZ = 13e9
 
     def __init__(self, address: str):
         """Инициализация анализатора спектра.
@@ -610,14 +610,10 @@ class RS_FSVA3013:
         ref_range = self._resource.query(':DISP:WIND1:SUBW:TRAC:Y:SCAL?')
         return int(float(ref_range))
 
-    def set_ref_range(self, ref_range: int):
+    def set_ref_range(self, ref_range: float):
         """Задать значение динамического диапазона анализатора"""
-        try:
-            self._resource.write(f':DISP:WIND1:SUBW:TRAC:Y:SCAL {ref_range}')
-        except Exception as e:
-            QMessageBox.critical(
-                self, 'Ошибка',
-                f'Не удалось установить уровень {ref_range}: {e}')
+        self._resource.write(
+            f':DISP:WIND1:SUBW:TRAC:Y:SCAL {float(ref_range)}')
 
     def ref_range_up(self, vector: bool):
         """Изменение динамического диапазонами вверх/внихз срелочками"""
@@ -628,6 +624,10 @@ class RS_FSVA3013:
         """Получить значение текущего аттенюатора"""
         atten = self._resource.query(':INP:ATT?')
         return int(float(atten))
+
+    def set_atten(self, value: int):
+        """Установить затухание входного аттенюатора, дБ."""
+        self._resource.write(f'INP:ATT {value}')
 
     def atten_auto_on(self):
         """Нажатие кнопки RF Atten Auto"""

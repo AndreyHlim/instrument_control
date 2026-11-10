@@ -67,15 +67,16 @@ class StateMixin:
             self._safe_set_text(
                 self.freq_stop, self._format_freq(state.freq_stop))
         if state.reflevel is not None:
-            self.label_reflevel.setText(f"{state.reflevel:.0f}")
+            self._safe_set_text(
+                self.label_reflevel, f'{state.reflevel:g}')
         if state.amp_unit is not None:
             self._set_combo(self.amp_unit, state.amp_unit)
         if state.transducer is not None:
             self._set_combo(self.transducer, state.transducer)
         if state.atten is not None:
-            self.label_atten.setText(f"{state.atten}")
+            self._safe_set_text(self.label_atten, f'{state.atten}')
         if state.range_val is not None:
-            self.label_range.setText(f"{state.range_val:.0f}")
+            self._safe_set_text(self.label_range, f'{state.range_val:g}')
         if state.preamp is not None:
             self._set_combo(self.combo_preamp, state.preamp)
         if state.cfstep is not None:

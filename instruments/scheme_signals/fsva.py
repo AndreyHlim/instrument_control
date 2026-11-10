@@ -22,10 +22,13 @@ def callbacks_map_fsva(form: QMainWindow, ctrl: str):
         # --- АМПЛИТУДА ---
         'amp': {
             **_updown(form, 'reflvl'),
+            'label_reflevel': lambda v: form._send_cmd(f'set_reflvl:{v:g}'),
             'amp_unit': form.on_amp_unit_changed,
             **_updown(form, 'ref_range'),
+            'label_range': lambda v: form._send_cmd(f'set_ref_range:{v:g}'),
             'combo_preamp': form.on_preamp_changed,
             **_updown(form, 'atten'),
+            'label_atten': lambda v: form._send_cmd(f'set_atten:{round(v)}'),
             'combo_transducer': form.on_trans_changed,
         },
 
