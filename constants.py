@@ -1,7 +1,12 @@
 RBW_TYPES_FILTER = ['Normal (3dB)', 'CISPR (6dB)', 'Cannel',
                     'RRC', '5-Pole', 'MIL (6dB)']
 
-FREQ_DIM = ['Гц', 'кГц', 'МГц', 'ГГц']
+FREQ_DIM = {
+    'ГГц': 1e9,
+    'МГц': 1e6,
+    'кГц': 1e3,
+    'Гц': 1.0,
+}
 
 AMP_UNITS = ['dBm', 'dBµV', 'dBmV', 'V', 'W',
              'dBV', 'dBµV/Hz', 'dBmV/Hz', 'dBµV/m']

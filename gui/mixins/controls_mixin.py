@@ -1,4 +1,4 @@
-from constants import DETECTORS_FSVA, TRACE_ACC
+from constants import DETECTORS_FSVA, FREQ_DIM, TRACE_ACC
 
 
 class ControlsMixin:
@@ -43,9 +43,10 @@ class ControlsMixin:
         self.vbw_auto = self.sec_rbw.widgets['vbw_auto']
         # SPAN
         self.label_span = self.sec_freq.widgets['label_span']
-        self.but_span_down = self.sec_freq.widgets['but_span_down']
-        self.but_span_up = self.sec_freq.widgets['but_span_up']
         self.but_span_set_stepcf = self.sec_freq.widgets['but_span_set_stepcf']
+        # Старт/стоп обзора
+        self.freq_start = self.sec_freq.widgets['freq_start']
+        self.freq_stop = self.sec_freq.widgets['freq_stop']
         # Center Freq
         self.label_center = self.sec_freq.widgets['label_center']
         self.but_cf_down = self.sec_freq.widgets['but_cf_down']
@@ -109,8 +110,8 @@ class ControlsMixin:
             self.rbw_unit, self.rbw_auto,
             self.but_vbw_down, self.label_vbw, self.but_vbw_up,
             self.vbw_unit, self.vbw_auto,
-            self.but_span_down, self.label_span,
-            self.but_span_up, self.but_span_set_stepcf,
+            self.label_span, self.but_span_set_stepcf,
+            self.freq_start, self.freq_stop,
             self.but_cf_down, self.label_center, self.but_cf_up,
             self.tb_cfstep, self.but_stepcf_set_span,
             self.but_reflvl_down, self.label_reflevel,
@@ -130,12 +131,46 @@ class ControlsMixin:
 
     # === ОБРАБОТЧИКИ ИЗМЕНЕНИЙ КОНТРОЛОВ =====================================
     # --- Обработчики контролов для управления Частотой, спаном ---------------
-    def on_cfstep_changed(self) -> None:
-        """Установить шаг перестройки центральной частоты.
+    @staticmethod
+    def _freq_text_to_hz(widget) -> float | None:
+        """'937.5 МГц' → 937500000.0 Гц; None при пустом/нечисловом поле.
 
-        Берёт значение из self.tb_cfstep (МГц).
+        Обратная операция к PlotMixin._format_freq: первое слово — число
+        (запятая допускается), второе — единица из FREQ_DIM.
         """
-        self._send_cmd(f'cfstep_set:{self.tb_cfstep.value()}')
+        parts = widget.text().strip().split()
+        if not parts:
+            return None
+        try:
+            value = float(parts[0].replace(',', '.'))
+        except ValueError:
+            return None
+        unit = parts[1] if len(parts) > 1 else 'Гц'
+        return value * FREQ_DIM.get(unit, 1.0)
+
+    def on_span_set_stepcf(self) -> None:
+        """Установить span равным шагу CF (значение из поля CF Step)."""
+        val = self._freq_text_to_hz(self.tb_cfstep)
+        if val is not None and val > 0:
+            self._send_cmd(f'set_span:{val:.0f}')
+
+    def on_span_half(self) -> None:
+        """Уменьшить span вдвое."""
+        val = self._freq_text_to_hz(self.label_span)
+        if val is not None and val > 0:
+            self._send_cmd(f'set_span:{val / 2:.0f}')
+
+    def on_span_double(self) -> None:
+        """Увеличить span вдвое."""
+        val = self._freq_text_to_hz(self.label_span)
+        if val is not None and val > 0:
+            self._send_cmd(f'set_span:{val * 2:.0f}')
+
+    def on_stepcf_set_span(self) -> None:
+        """Установить шаг CF равным текущему span."""
+        val = self._freq_text_to_hz(self.label_span)
+        if val is not None and val > 0:
+            self._send_cmd(f'cfstep_set:{val:.0f}')
     # -------------------------------------------------------------------------
 
     # --- Обработчики контролов для управления Амплитудой ---------------------

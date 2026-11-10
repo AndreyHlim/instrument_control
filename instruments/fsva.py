@@ -258,7 +258,7 @@ class RS_FSVA3013:
 
     def get_start_freq_span(self, dim: Dim = Dim.Hz) -> float:
         """
-        Стартовая частота в ширине обзора
+        Получить стартовую частоту в ширине обзора
         Args:
             dim: в какой размерности вернуть значение
         """
@@ -267,12 +267,30 @@ class RS_FSVA3013:
 
     def get_stop_freq_span(self, dim: Dim = Dim.Hz) -> float:
         """
-        Стартовая частота в ширине обзора
+        Получить конечную частоту в ширине обзора
         Args:
             dim: в какой размерности вернуть значение
         """
         freq_start = float(self._resource.query(':FREQ:STOP?'))
         return freq_start / (10 ** dim)
+
+    def set_start_freq_span(self, freq: float, dim: Dim = Dim.Hz):
+        """
+        Установить стартовую частоту в ширине обзора
+        Args:
+            dim: в какой размерности введено значение
+        """
+        freq_Hz = freq * (10 ** dim)
+        self._resource.write(f':FREQ:STAR {freq_Hz}')
+
+    def set_stop_freq_span(self, freq: float, dim: Dim = Dim.Hz):
+        """
+        Установить конечную частоту в ширине обзора
+        Args:
+            dim: в какой размерности введено значение
+        """
+        freq_Hz = freq * (10 ** dim)
+        self._resource.write(f':FREQ:STOP {freq_Hz}')
 
     def get_trace_data_freq(
         self, num_trace: int, dim: Dim = Dim.Hz

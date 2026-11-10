@@ -1,6 +1,7 @@
 import pyqtgraph as pg
 from PyQt6.QtCore import Qt, QTimer
 
+from constants import FREQ_DIM
 from dataclass import DeviceState
 
 
@@ -126,6 +127,7 @@ class PlotMixin:
         # Сигнал изменения диапазона
         vb = self.plotWidget.getPlotItem().getViewBox()
         vb.sigRangeChanged.connect(self._on_x_range_changed)
+        # Колесо мыши над графиком = изменение span (вместо кнопок)
         vb.sigResized.connect(self._reposition_labels)
         self.plotWidget.showGrid(x=False, y=True)
 
@@ -152,14 +154,11 @@ class PlotMixin:
         # Размерность — по центру окна, а не по шагу: окно вокруг 1 ГГц
         # остаётся в ГГц независимо от ширины span
         abs_center = abs((x_min + x_max) / 2)
-        if abs_center >= 1e9:
-            unit, div = 'ГГц', 1e9
-        elif abs_center >= 1e6:
-            unit, div = 'МГц', 1e6
-        elif abs_center >= 1e3:
-            unit, div = 'кГц', 1e3
+        for unit, div in FREQ_DIM.items():
+            if abs_center >= div:
+                break
         else:
-            unit, div = 'Гц', 1
+            unit, div = 'Гц', 1.0
 
         # Знаков после запятой — столько, чтобы соседние деления
         # различались при любом шаге
@@ -257,42 +256,23 @@ class PlotMixin:
         """
         abs_val = abs(hz)
 
-        # Определяем размерность и базовое значение
-        if abs_val >= 1e9:
-            value = hz / 1e9
-            unit = "ГГц"
-        elif abs_val >= 1e6:
-            value = hz / 1e6
-            unit = "МГц"
-        elif abs_val >= 1e3:
-            value = hz / 1e3
-            unit = "кГц"
+        # Автоподбор: первая (крупнейшая) единица, в которой значение >= 1
+        for unit, div in FREQ_DIM.items():
+            if abs_val >= div:
+                break
         else:
-            value = hz
-            unit = "Гц"
+            unit, div = 'Гц', 1.0
+        value = hz / div
 
-        # Если нужна принудительная точность — применяем её
         if force_decimals is not None:
-            return f"{value:.{force_decimals}f} {unit}"
+            return f'{value:.{force_decimals}f} {unit}'
+        if dim in FREQ_DIM:
+            return f'{abs_val / FREQ_DIM[dim]:.0f} {dim}'
 
-        if dim in ["ГГц", "МГц", "кГц", "Гц"]:
-            if dim == 'МГц':
-                return f"{abs_val / 1e6:.0f} {dim}"
-            if dim == 'ГГц':
-                return f"{abs_val / 1e9:.0f} {dim}"
-            if dim == 'кГц':
-                return f"{abs_val / 1e3:.0f} {dim}"
-            if dim == 'Гц':
-                return f"{abs_val:.0f} {dim}"
-
-        # Иначе — адаптивная логика (как раньше)
-        if value >= 100:
-            return f"{value:.0f} {unit}"
-        elif value >= 1:
-            return f"{value:.1f} {unit}"
-        else:
-            # Для маленьких значений (например, 0.5 кГц → 500 Гц)
-            return f"{value * 1e3:.0f} Гц"
+        # Все значащие цифры, но не больше 6 знаков после запятой:
+        # 1.562 ГГц, 937.499996 МГц, 50.0 кГц, 500 Гц
+        text = f'{value:.6f}'.rstrip('0').rstrip('.')
+        return f'{text} {unit}'
 
     def _send_x_range_cmd(self):
         """Отправить новые CF и span на прибор (после дебаунса).

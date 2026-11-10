@@ -15,7 +15,6 @@ class Style(StrEnum):
         "qproperty-alignment: 'AlignHCenter|AlignVCenter';"
         "min-height: 18px;"
         "max-height: 18px;"
-        "border: 1px solid #ababab;"
         "background-color: #ffffff;"
     )
 
@@ -35,8 +34,8 @@ class Style(StrEnum):
     BUT_SPAN_TO_STEPCF = (
         "min-height: 20px;"
         "max-height: 20px;"
-        "min-width: 50px;"
-        "max-width: 50px;"
+        "min-width: 68px;"
+        "max-width: 68px;"
     )
     VAL_CFSTEP_TO_SPAN = (
         "min-height: 20px;"
@@ -56,7 +55,7 @@ class Style(StrEnum):
     # Label в рамке
     LBL_BORDER = (
         "qproperty-alignment: 'AlignHCenter|AlignVCenter'; "
-        "border: 1px solid #ababab; "     # Тонкая серая рамка
+        # "border: 1px solid #ababab; "     # Тонкая серая рамка
         "min-height: 18px;"
         "max-height: 18px;"
         # "border-radius: 2px; "          # Небольшое скругления

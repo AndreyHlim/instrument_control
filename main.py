@@ -8,14 +8,14 @@ from function import resource_path
 from gui.mixins.connection_mixin import ConnectionMixin
 from gui.mixins.controls_mixin import ControlsMixin
 from gui.mixins.plot_mixin import PlotMixin
+from gui.mixins.signals_mixin import SignalsMixin
 from gui.mixins.state_mixin import StateMixin
 from gui.settings import set_layout_left
-from instruments.scheme_signals.connect import callbacks_map_conn
-from instruments.scheme_signals.fsva import callbacks_map_fsva
 
 
 class MainWindow(
-    QMainWindow, PlotMixin, StateMixin, ControlsMixin, ConnectionMixin
+    QMainWindow, PlotMixin, StateMixin, ControlsMixin,
+    ConnectionMixin, SignalsMixin,
 ):
     def __init__(self):
         super().__init__()
@@ -31,13 +31,6 @@ class MainWindow(
         self.initialization_form_elements_fsva()
         self.settings_plot()
         self.signal_connection()
-
-    def signal_connection(self):
-        self.sec_instr.connect_callbacks(callbacks_map_conn(self))
-        self.sec_ampl.connect_callbacks(callbacks_map_fsva(self, 'amp'))
-        self.sec_freq.connect_callbacks(callbacks_map_fsva(self, 'freq'))
-        self.sec_rbw.connect_callbacks(callbacks_map_fsva(self, 'rbw'))
-        self.sec_sweep.connect_callbacks(callbacks_map_fsva(self, 'sweep'))
 
     def closeEvent(self, event):
         self._stop_trace_thread()

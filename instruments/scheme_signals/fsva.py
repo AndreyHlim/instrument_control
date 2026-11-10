@@ -33,7 +33,21 @@ def callbacks_map_fsva(form: QMainWindow, ctrl: str):
         'freq': {
             **_updown(form, 'cf'),
             **_updown(form, 'span'),
-            'tb_cfstep': form.on_cfstep_changed,
+            'label_center': lambda hz: form._send_cmd(f'set_cf:{hz:.0f}'),
+            'label_span': {
+                'freq_accepted': lambda hz: form._send_cmd(
+                    f'set_span:{hz:.0f}'),
+                'wheel_step': lambda step: form._send_cmd(
+                    'span_up' if step > 0 else 'span_down'),
+            },
+            'tb_cfstep': lambda hz: form._send_cmd(f'cfstep_set:{hz:.0f}'),
+            'freq_start': lambda hz: form._send_cmd(
+                f'set_freq_start:{hz:.0f}'),
+            'freq_stop': lambda hz: form._send_cmd(f'set_freq_stop:{hz:.0f}'),
+            'but_span_set_stepcf': form.on_span_set_stepcf,
+            'but_stepcf_set_span': form.on_stepcf_set_span,
+            'but_span_set_div2': form.on_span_half,
+            'but_span_set_mul2': form.on_span_double,
         },
 
         # --- RBW, VBW ---

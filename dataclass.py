@@ -19,6 +19,8 @@ class DeviceState:
     span: float | None = None
     center: float | None = None
     cfstep: float | None = None
+    freq_start: float | None = None
+    freq_stop: float | None = None
 
     # Амплитуды
     reflevel: float | None = None

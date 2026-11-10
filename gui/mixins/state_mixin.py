@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from PyQt6.QtWidgets import (QCheckBox, QComboBox, QDoubleSpinBox,
+from PyQt6.QtWidgets import (QCheckBox, QComboBox, QDoubleSpinBox, QLineEdit,
                              QRadioButton, QSpinBox)
 
 from constants import DETECTORS_FSVA_REV, TRACE_ACC_REV
@@ -55,10 +55,17 @@ class StateMixin:
         if state.vbw_auto is not None:
             self._set_checked(self.vbw_auto, state.vbw_auto)
         if state.span is not None:
-            self.label_span.setText(self._format_freq(state.span * 1e6))
+            self._safe_set_text(
+                self.label_span, self._format_freq(state.span * 1e6))
         if state.center is not None:
-            self.label_center.setText(self._format_freq(
-                state.center * 1e6, force_decimals=6))
+            self._safe_set_text(
+                self.label_center, self._format_freq(state.center * 1e6))
+        if state.freq_start is not None:
+            self._safe_set_text(
+                self.freq_start, self._format_freq(state.freq_start))
+        if state.freq_stop is not None:
+            self._safe_set_text(
+                self.freq_stop, self._format_freq(state.freq_stop))
         if state.reflevel is not None:
             self.label_reflevel.setText(f"{state.reflevel:.0f}")
         if state.amp_unit is not None:
@@ -72,7 +79,8 @@ class StateMixin:
         if state.preamp is not None:
             self._set_combo(self.combo_preamp, state.preamp)
         if state.cfstep is not None:
-            self._set_spin(self.tb_cfstep, state.cfstep)
+            self._safe_set_text(
+                self.tb_cfstep, self._format_freq(state.cfstep, 1))
         if state.det is not None:
             self._set_combo(
                 self.combo_det, DETECTORS_FSVA_REV.get(state.det, state.det))
@@ -85,3 +93,18 @@ class StateMixin:
             self._set_checked(self.radio_count, not state.sweep_single)
         if state.sweep_count is not None:
             self._set_spin(self.tb_sweep_count, state.sweep_count)
+
+    def _safe_set_text(self, widget: QLineEdit, text: str) -> None:
+        """Записать значение в поле, не мешая пользователю.
+
+        Пропускаем запись, только если пользователь реально набрал
+        текст в поле (фокус + isModified) — иначе setText затёр бы
+        недопечатанное значение. Просто фокус с выделением не мешает:
+        после колёсика или прихода состояния с прибора поле
+        перезаписывается сразу.
+        """
+        if widget.hasFocus() and widget.isModified():
+            return
+        if widget.text() == text:
+            return
+        widget.setText(text)

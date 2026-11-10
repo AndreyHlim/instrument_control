@@ -1,7 +1,8 @@
 from typing import Any, Dict, List, Union
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QColor, QIcon, QPainter, QPen
+from PyQt6.QtCore import QRegularExpression, Qt, QTimer, pyqtSignal
+from PyQt6.QtGui import (QColor, QIcon, QPainter, QPen,
+                         QRegularExpressionValidator)
 from PyQt6.QtWidgets import (QCheckBox, QComboBox, QDoubleSpinBox, QGridLayout,
                              QHBoxLayout, QLabel, QLineEdit, QPushButton,
                              QRadioButton, QSizePolicy, QSpinBox, QToolButton,
@@ -18,8 +19,7 @@ class CollapsibleSection(QWidget):
         self.widgets: Dict[str, QWidget] = {}
 
         self.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Maximum
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum
         )
 
         layout = QVBoxLayout(self)
@@ -28,7 +28,7 @@ class CollapsibleSection(QWidget):
 
         # --- Заголовок ---
         header_layout = QHBoxLayout()
-        header_layout.setContentsMargins(5, 5, 10, 5)
+        header_layout.setContentsMargins(0, 4, 0, 4)
         header_layout.setSpacing(0)
 
         self.header_button = QToolButton()
@@ -56,9 +56,9 @@ class CollapsibleSection(QWidget):
         # --- Контейнер контента ---
         self.content_widget = QWidget()
         self.content_layout = QGridLayout(self.content_widget)
-        self.content_layout.setContentsMargins(10, 5, 10, 5)
-        self.content_layout.setHorizontalSpacing(15)
-        self.content_layout.setVerticalSpacing(3)
+        self.content_layout.setContentsMargins(5, 5, 5, 5)
+        self.content_layout.setHorizontalSpacing(3)
+        self.content_layout.setVerticalSpacing(2)
         self.content_widget.setStyleSheet(Style.WIDGET_SECTION)
 
         layout.addWidget(self.content_widget)
@@ -157,6 +157,10 @@ class CollapsibleSection(QWidget):
             widget = QLineEdit(item.get("text", ""))
             if "style" in item:
                 widget.setStyleSheet(item["style"])
+        elif w_type == "freq_edit":
+            widget = FreqLineEdit(item.get("text", ""))
+            if "style" in item:
+                widget.setStyleSheet(item["style"])
 
         if widget and key:
             self.widgets[key] = widget
@@ -223,30 +227,40 @@ class CollapsibleSection(QWidget):
                     self.add_row_layout(label, widget)
 
     def connect_callbacks(self, mapping: Dict[str, Any]):
-        """Массовое подключение обработчиков сигналов через словарь.
+        """Массовое подключение сигналов через словарь.
 
-        Сигнал выбирается по типу виджета:
-        QPushButton → clicked; QCheckBox/QRadioButton → toggled;
-        QSpinBox/QDoubleSpinBox → valueChanged; QComboBox → currentTextChanged.
+        Значение словаря:
+        - callable — стандартный сигнал по типу виджета (clicked,
+          toggled, valueChanged, currentTextChanged), для FreqLineEdit —
+          freq_accepted;
+        - dict {'<имя сигнала>': handler} — подключение по именам
+          (для FreqLineEdit: 'freq_accepted', 'wheel_step').
 
         Note:
             Виджеты без известного типа (например, QLabel) молча
             пропускаются. Для радиогруппы подключайте только одну
             кнопку группы — toggled придёт при любом переключении.
         """
-        for key, callback in mapping.items():
+        for key, cb in mapping.items():
             widget = self.widgets.get(key)
             if not widget:
                 continue
 
+            if isinstance(cb, dict):
+                for sig_name, handler in cb.items():
+                    getattr(widget, sig_name).connect(handler)
+                continue
+
             if isinstance(widget, QPushButton):
-                widget.clicked.connect(callback)
+                widget.clicked.connect(cb)
             elif isinstance(widget, (QCheckBox, QRadioButton)):
-                widget.toggled.connect(callback)
+                widget.toggled.connect(cb)
             elif isinstance(widget, (QSpinBox, QDoubleSpinBox)):
-                widget.valueChanged.connect(callback)
+                widget.valueChanged.connect(cb)
             elif isinstance(widget, QComboBox):
-                widget.currentTextChanged.connect(callback)
+                widget.currentTextChanged.connect(cb)
+            elif isinstance(widget, FreqLineEdit):
+                widget.freq_accepted.connect(cb)
 
     def get_values(self) -> Dict[str, Any]:
         values = {}
@@ -283,3 +297,92 @@ class CollapsibleSection(QWidget):
         self.content_widget.setVisible(checked)
         self.setMaximumHeight(16777215)
         self.updateGeometry()
+
+
+class FreqLineEdit(QLineEdit):
+    """Поле частоты: число + клавиша-суффикс, без Enter.
+
+    Клавиши-суффиксы (учитывается регистр, раскладка не важна):
+      ГГц: Г U G П     Гц: г u g п
+      МГц: М м V v M m Ь ь
+      кГц: К к R r K k Л л
+    Enter — применить в той единице, которая была в поле до правки
+    (в поле значение приходит в МГц — это и есть «текущие» единицы).
+    При получении фокуса текст выделяется целиком.
+    """
+
+    freq_accepted = pyqtSignal(float)  # значение в герцах
+    wheel_step = pyqtSignal(int)        # +1 — колесо вверх, -1 — вниз
+
+    _CHAR_UNITS = {
+        'Г': 1e9, 'U': 1e9, 'G': 1e9, 'П': 1e9,
+        'г': 1.0, 'u': 1.0, 'g': 1.0, 'п': 1.0,
+        'М': 1e6, 'м': 1e6, 'V': 1e6, 'v': 1e6,
+        'M': 1e6, 'm': 1e6, 'Ь': 1e6, 'ь': 1e6,
+        'К': 1e3, 'к': 1e3, 'R': 1e3, 'r': 1e3,
+        'K': 1e3, 'k': 1e3, 'Л': 1e3, 'л': 1e3,
+    }
+    _SUFFIXES = (('ГГц', 1e9), ('МГц', 1e6), ('кГц', 1e3), ('Гц', 1.0))
+
+    def __init__(self, text: str = '', parent=None):
+        super().__init__(text, parent)
+        # Только цифры и один разделитель: '937,5', '3.5', '937'
+        validator = QRegularExpressionValidator(
+            QRegularExpression(r'\d*[.,]?\d*'), self)
+        self.setValidator(validator)
+        self._enter_factor = 1e6  # единица поля до правки
+        self._wheel_accum = 0
+
+    def focusInEvent(self, event) -> None:
+        super().focusInEvent(event)
+        # selectAll делаем отложенно: при клике мышью после focusInEvent
+        # сработает mousePressEvent и поставит каретку, затерев выделение
+        QTimer.singleShot(0, self.selectAll)
+        # Запомнить единицу текущего значения: '937,5 МГц' → 1e6
+        text = self.text().strip()
+        for suffix, factor in self._SUFFIXES:
+            if text.endswith(suffix):
+                self._enter_factor = factor
+                return
+        self._enter_factor = 1e6
+
+    def wheelEvent(self, event) -> None:
+        """Колесо над полем → сигнал направления.
+
+        Мышь шлёт по 120 единиц на «щелчок», тачпады — мелкие дельты,
+        поэтому накапливаем и эмитим по полному шагу.
+        """
+        self._wheel_accum += event.angleDelta().y()
+        while abs(self._wheel_accum) >= 120:
+            step = 1 if self._wheel_accum > 0 else -1
+            self._wheel_accum -= 120 * step
+            self.wheel_step.emit(step)
+        event.accept()
+
+    def keyPressEvent(self, event) -> None:
+        if event.key() in (Qt.Key.Key_Enter, Qt.Key.Key_Return):
+            if self.isModified():
+                self._commit(self._enter_factor)
+            event.accept()
+            return
+
+        factor = self._CHAR_UNITS.get(event.text())
+        if factor is not None and self.text().strip():
+            self._commit(factor)
+            event.accept()
+            return
+
+        super().keyPressEvent(event)
+
+    def _commit(self, factor: float) -> None:
+        """Разобрать число, отправить сигнал и уйти из редактирования."""
+        text = self.text().strip().replace(',', '.')
+        try:
+            value_hz = float(text) * factor
+        except ValueError:
+            return
+        if value_hz <= 0:
+            return
+        self.setModified(False)
+        self.clearFocus()
+        self.freq_accepted.emit(value_hz)

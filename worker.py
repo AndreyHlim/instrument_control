@@ -46,18 +46,20 @@ class TraceWorker(QObject):
 
         # Как часто опрашивать каждый параметр (в итерациях цикла)
         self._poll_intervals = {
-            'rbw_type': 50,
-            'rbw': 10,          # каждые 10 кадров
+            'rbw_type': 50,     # каждые 50 кадров
+            'rbw': 10,
             'vbw': 10,
             'rbw_auto': 30,
             'vbw_auto': 30,
-            'span': 10,         # каждые 10 кадров
-            'center': 1,        # каждый кадр
+            'span': 10,
+            'center': 1,
+            'freq_start': 10,
+            'freq_stop': 10,
             'reflevel': 10,
             'amp_unit': 10,
-            'atten': 20,        # редко меняется
-            'range': 50,       # редко меняется
-            'preamp': 50,      # редко меняется
+            'atten': 20,
+            'range': 50,
+            'preamp': 50,
             'transducer': 100,
             'cfstep': 50,
             'det': 50,
@@ -72,14 +74,19 @@ class TraceWorker(QObject):
             'set_vbw': 'vbw',
             'vbw_auto_set': 'vbw_auto',
             'rbw_auto_set': 'rbw_auto',
-            'span_up': 'span', 'span_down': 'span',
-            'cf_up': 'center', 'cf_down': 'center',
+            'span_up': ('span', 'freq_start', 'freq_stop'),
+            'span_down': ('span', 'freq_start', 'freq_stop'),
+            'cf_up': ('center', 'freq_start', 'freq_stop'),
+            'cf_down': ('center', 'freq_start', 'freq_stop'),
             'reflvl_up': 'reflevel', 'reflvl_down': 'reflevel',
             'amp_unit': 'amp_unit', 'transducer': 'transducer',
             'ref_range_up': 'range', 'ref_range_down': 'range',
             'atten_up': 'atten', 'atten_down': 'atten',
             'preamp': 'preamp', 'cfstep_set': 'cfstep',
-            'set_cf': 'center', 'set_span': 'span',
+            'set_cf': ('center', 'freq_start', 'freq_stop'),
+            'set_span': ('span', 'freq_start', 'freq_stop'),
+            'set_freq_start': ('freq_start', 'center', 'span'),
+            'set_freq_stop': ('freq_stop', 'center', 'span'),
             'det_set': 'det', 'trace_acc_set': 'trace_acc',
             'sweep_count_set': 'sweep_count',
             'sweep_mode': 'sweep',
@@ -121,7 +128,9 @@ class TraceWorker(QObject):
                     base_cmd = cmd.split(':')[0]
                     param = self._cmd_to_param.get(base_cmd)
                     if param:
-                        affected_params.add(param)
+                        if isinstance(param, str):
+                            param = (param,)
+                        affected_params.update(param)
 
                 if affected_params:
                     quick_state = DeviceState()
@@ -189,6 +198,10 @@ class TraceWorker(QObject):
             state.span = self._analyzer.get_span(dim=Dim.MHz)
         elif param == 'center':
             state.center = self._analyzer.get_cf(dim=Dim.MHz)
+        elif param == 'freq_start':
+            state.freq_start = self._analyzer.get_start_freq_span(dim=Dim.Hz)
+        elif param == 'freq_stop':
+            state.freq_stop = self._analyzer.get_stop_freq_span(dim=Dim.Hz)
         elif param == 'reflevel':
             state.reflevel = float(self._analyzer.get_reflvl())
         elif param == 'amp_unit':
@@ -205,7 +218,7 @@ class TraceWorker(QObject):
         elif param == 'preamp':
             state.preamp = self._analyzer.get_preamp()
         elif param == 'cfstep':
-            state.cfstep = self._analyzer.get_step_freq(dim=Dim.MHz)
+            state.cfstep = self._analyzer.get_step_freq()
         elif param == 'det':
             state.det = self._analyzer.active_trc().get_trace_det_type()
         elif param == 'trace_acc':
@@ -282,13 +295,19 @@ class TraceWorker(QObject):
             self._analyzer.set_preamp(val)
         elif cmd.startswith('cfstep_set:'):
             val = float(cmd.split('cfstep_set:', 1)[1])
-            self._analyzer.set_step_freq(step=val, dim=Dim.MHz)
+            self._analyzer.set_step_freq(step=val)
         elif cmd.startswith('set_cf:'):
             val = float(cmd.split('set_cf:', 1)[1])
             self._analyzer.set_cf(val, dim=Dim.Hz)
         elif cmd.startswith('set_span:'):
             val = float(cmd.split('set_span:', 1)[1])
             self._analyzer.set_span(val, dim=Dim.Hz)
+        elif cmd.startswith('set_freq_start:'):
+            val = float(cmd.split('set_freq_start:', 1)[1])
+            self._analyzer.set_start_freq_span(val, dim=Dim.Hz)
+        elif cmd.startswith('set_freq_stop:'):
+            val = float(cmd.split('set_freq_stop:', 1)[1])
+            self._analyzer.set_stop_freq_span(val, dim=Dim.Hz)
         elif cmd.startswith('det_set:'):
             val = cmd.split('det_set:', 1)[1]
             self._analyzer.set_unit_detector(val)

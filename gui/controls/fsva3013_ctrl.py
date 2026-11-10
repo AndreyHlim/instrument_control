@@ -112,7 +112,7 @@ SECTION_AMP = [
 
 # ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ ЧАСТОТОЙ
 SECTION_FREQ = [
-    # Center
+    # Center и Step
     {
         "label": "Center",
         "widgets": [
@@ -131,10 +131,29 @@ SECTION_FREQ = [
                 "style": Style.BUT_SQUARE,
             },
             {
-                "type": "label",
+                "type": "freq_edit",
                 "key": "label_center",
+                "text": "",
                 "stretch": 4,
                 "style": Style.LBL_BORDER,
+            },
+            {
+                'type': 'label',
+                'text': 'Шаг',
+                "stretch": 1,
+            },
+            {
+                "type": "freq_edit",
+                "key": "tb_cfstep",
+                "stretch": 3,
+                "style": Style.LBL_BORDER,
+            },
+            {
+                'type': 'button',
+                "key": "but_stepcf_set_span",
+                "text": "=Span",
+                "stretch": 2,
+                "style": Style.VAL_CFSTEP_TO_SPAN,
             },
         ]
     },
@@ -143,29 +162,15 @@ SECTION_FREQ = [
         "label": "Span",
         "widgets": [
             {
-                'type': 'button',
-                "key": "but_span_up",
-                "text": "▲",
-                "stretch": 1,
-                "style": Style.BUT_SQUARE,
-            },
-            {
-                'type': 'button',
-                "key": "but_span_down",
-                "text": "▼",
-                "stretch": 1,
-                "style": Style.BUT_SQUARE,
-            },
-            {
-                "type": "label",
+                "type": "freq_edit",
                 "key": "label_span",
-                "stretch": 3,
+                "stretch": 4,
                 "style": Style.LBL_BORDER,
             },
             {
                 'type': 'button',
                 "key": "but_span_set_stepcf",
-                "text": "=Step",
+                "text": "=Шаг",
                 "stretch": 2,
                 "style": Style.BUT_SPAN_TO_STEPCF,
             },
@@ -186,28 +191,29 @@ SECTION_FREQ = [
         ]
 
     },
-    # Step CF
     {
-        "label": "CF Step",
-        "widgets": [
+        'label': 'Старт',
+        'widgets': [
             {
-                "type": "double",
-                "key": "tb_cfstep",
-                "min": 0.001,
-                "max": 5000,
-                "value": 0.001,
+                'type': 'freq_edit',
+                'key': 'freq_start',
                 "stretch": 8,
-                "style": Style.SPIN_BOX,
+                "style": Style.LBL_BORDER,
             },
             {
-                'type': 'button',
-                "key": "but_stepcf_set_span",
-                "text": "=Span",
-                "stretch": 2,
-                "style": Style.VAL_CFSTEP_TO_SPAN,
+                'type': 'label',
+                "stretch": 1,
+                'text': 'Стоп',
+                'align': 'right',
+            },
+            {
+                'type': 'freq_edit',
+                'key': 'freq_stop',
+                "stretch": 7,
+                "style": Style.LBL_BORDER,
             },
         ]
-    },
+    }
 ]
 
 # ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ RBW/VBW
@@ -244,7 +250,7 @@ SECTION_RBW = [
             {
                 "type": "combo",
                 "key": "rbw_unit",
-                "items": FREQ_DIM,
+                "items": FREQ_DIM.keys(),
                 "stretch": 1,
             },
             {
@@ -282,7 +288,7 @@ SECTION_RBW = [
             {
                 "type": "combo",
                 "key": "vbw_unit",
-                "items": FREQ_DIM,
+                "items": FREQ_DIM.keys(),
                 "stretch": 1,
             },
             {
