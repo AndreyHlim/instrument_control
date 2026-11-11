@@ -131,6 +131,11 @@ class PlotMixin:
         vb.sigResized.connect(self._reposition_labels)
         self.plotWidget.showGrid(x=False, y=True)
 
+        pi = self.plotWidget.getPlotItem()
+        vb = pi.getViewBox()
+        pi.hideButtons()            # скрыть кнопку автомасштаба
+        vb.setMenuEnabled(False)    # запретить контекстное меню графика
+
     def _reposition_labels(self) -> None:
         """Метки в пикселях: при изменении геометрии окна перепривязать."""
         if self._current_x_min is None or self._current_x_max is None:
