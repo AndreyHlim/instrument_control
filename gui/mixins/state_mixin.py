@@ -75,6 +75,8 @@ class StateMixin:
             self._set_combo(self.transducer, state.transducer)
         if state.atten is not None:
             self._safe_set_text(self.label_atten, f'{state.atten}')
+        if state.atten_auto is not None:
+            self._set_checked(self.atten_auto, state.atten_auto)
         if state.range_val is not None:
             self._safe_set_text(self.label_range, f'{state.range_val:g}')
         if state.preamp is not None:

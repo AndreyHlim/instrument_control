@@ -26,6 +26,7 @@ class DeviceState:
     reflevel: float | None = None
     amp_unit: str | None = None
     atten: int | None = None
+    atten_auto: bool | None = None
     range_val: float | None = None
     preamp: str | None = None
     transducer: str | None = None

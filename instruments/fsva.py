@@ -633,6 +633,14 @@ class RS_FSVA3013:
         """Нажатие кнопки RF Atten Auto"""
         self._resource.write(':INP:ATT:AUTO ON')
 
+    def set_atten_auto(self, state: bool):
+        """Включить/выключить автоаттенюатор."""
+        self._resource.write(f':INP:ATT:AUTO {"ON" if state else "OFF"}')
+
+    def atten_is_auto_on(self) -> bool:
+        """Установлен ли авто аттенюатор"""
+        return self._resource.query(':INP:ATT:AUTO?') == '1'
+
     def atten_up(self, vector: bool):
         """Изменение аттенюатора вверх/внихз срелочками"""
         dir = 'UP' if vector else 'DOWN'

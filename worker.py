@@ -58,6 +58,7 @@ class TraceWorker(QObject):
             'reflevel': 10,
             'amp_unit': 10,
             'atten': 20,
+            'atten_auto': 50,
             'range': 50,
             'preamp': 50,
             'transducer': 100,
@@ -81,8 +82,10 @@ class TraceWorker(QObject):
             'reflvl_up': 'reflevel', 'reflvl_down': 'reflevel',
             'set_reflvl': 'reflevel',
             'amp_unit': 'amp_unit', 'transducer': 'transducer',
-            'atten_up': 'atten', 'atten_down': 'atten',
-            'set_atten': 'atten',
+            'atten_up': ('atten', 'atten_auto'),
+            'atten_down': ('atten', 'atten_auto'),
+            'set_atten': ('atten', 'atten_auto'),
+            'atten_auto_set': 'atten_auto',
             'ref_range_up': 'range', 'ref_range_down': 'range',
             'set_ref_range': 'range',
             'preamp': 'preamp', 'cfstep_set': 'cfstep',
@@ -216,6 +219,8 @@ class TraceWorker(QObject):
                 state.transducer = 'Не выбрана (0 дБ)'
         elif param == 'atten':
             state.atten = self._analyzer.get_atten()
+        elif param == 'atten_auto':
+            state.atten_auto = self._analyzer.atten_is_auto_on()
         elif param == 'range':
             state.range_val = self._analyzer.get_ref_range()
         elif param == 'preamp':
@@ -302,6 +307,9 @@ class TraceWorker(QObject):
             self._analyzer.atten_up(True)
         elif cmd == 'atten_down':
             self._analyzer.atten_up(False)
+        elif cmd.startswith('atten_auto_set:'):
+            val = cmd.split('atten_auto_set:', 1)[1] == 'on'
+            self._analyzer.set_atten_auto(val)
         elif cmd.startswith('preamp:'):
             val = cmd.split('preamp:', 1)[1]
             self._analyzer.set_preamp(val)

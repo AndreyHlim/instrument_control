@@ -41,9 +41,13 @@ class ControlsMixin:
         self.label_vbw = self.sec_rbw.widgets['label_vbw']
         self.vbw_unit = self.sec_rbw.widgets['vbw_unit']
         self.vbw_auto = self.sec_rbw.widgets['vbw_auto']
+
         # SPAN
         self.label_span = self.sec_freq.widgets['label_span']
         self.but_span_set_stepcf = self.sec_freq.widgets['but_span_set_stepcf']
+        self.but_span_set_div2 = self.sec_freq.widgets['but_span_set_div2']
+        self.but_span_set_mul2 = self.sec_freq.widgets['but_span_set_mul2']
+        self.lbl_stop = self.sec_freq.widgets['lbl_stop']
         # Старт/стоп обзора
         self.freq_start = self.sec_freq.widgets['freq_start']
         self.freq_stop = self.sec_freq.widgets['freq_stop']
@@ -54,22 +58,28 @@ class ControlsMixin:
         # CF STEP
         self.tb_cfstep = self.sec_freq.widgets['tb_cfstep']
         self.but_stepcf_set_span = self.sec_freq.widgets['but_stepcf_set_span']
+        self.lbl_step = self.sec_freq.widgets['lbl_step']
+
         # REF LEVEL
         self.label_reflevel = self.sec_ampl.widgets['label_reflevel']
-        self.but_reflvl_down = self.sec_ampl.widgets['but_reflvl_down']
-        self.but_reflvl_up = self.sec_ampl.widgets['but_reflvl_up']
+        # self.but_reflvl_down = self.sec_ampl.widgets['but_reflvl_down']
+        # self.but_reflvl_up = self.sec_ampl.widgets['but_reflvl_up']
         self.amp_unit = self.sec_ampl.widgets['amp_unit']
         self.transducer = self.sec_ampl.widgets['combo_transducer']
         # REF RANGE
         self.label_range = self.sec_ampl.widgets['label_range']
-        self.but_ref_range_down = self.sec_ampl.widgets['but_ref_range_down']
-        self.but_ref_range_up = self.sec_ampl.widgets['but_ref_range_up']
+        self.lbl_range = self.sec_ampl.widgets['lbl_range']
+        # self.but_ref_range_down = self.sec_ampl.widgets['but_ref_range_down']
+        # self.but_ref_range_up = self.sec_ampl.widgets['but_ref_range_up']
         # PREAMP
         self.combo_preamp = self.sec_ampl.widgets['combo_preamp']
         # ATTEN
         self.label_atten = self.sec_ampl.widgets['label_atten']
-        self.but_atten_down = self.sec_ampl.widgets['but_atten_down']
-        self.but_atten_up = self.sec_ampl.widgets['but_atten_up']
+        self.atten_auto = self.sec_ampl.widgets['atten_auto']
+        self.label_preamp = self.sec_ampl.widgets['label_preamp']
+        # self.but_atten_down = self.sec_ampl.widgets['but_atten_down']
+        # self.but_atten_up = self.sec_ampl.widgets['but_atten_up']
+
         # SWEEP
         self.combo_det = self.sec_sweep.widgets['combo_det']
         self.combo_trace_acc = self.sec_sweep.widgets['combo_trace_acc']
@@ -106,24 +116,27 @@ class ControlsMixin:
                 False — заблокировать (прибор отключён).
         """
         controls = [
+            # управление RBW / VBW
             self.rbw_type, self.but_rbw_down, self.label_rbw, self.but_rbw_up,
             self.rbw_unit, self.rbw_auto,
             self.but_vbw_down, self.label_vbw, self.but_vbw_up,
             self.vbw_unit, self.vbw_auto,
+            # управление частотой / спаном / шагом
             self.label_span, self.but_span_set_stepcf,
-            self.freq_start, self.freq_stop,
+            self.but_span_set_div2, self.but_span_set_mul2,
+            self.freq_start, self.freq_stop, self.lbl_stop,
             self.but_cf_down, self.label_center, self.but_cf_up,
-            self.tb_cfstep, self.but_stepcf_set_span,
-            self.but_reflvl_down, self.label_reflevel,
-            self.but_reflvl_up, self.amp_unit,
-            self.but_ref_range_down, self.label_range, self.but_ref_range_up,
-            self.combo_preamp,
-            self.but_atten_down, self.label_atten, self.but_atten_up,
-            self.transducer,
+            self.tb_cfstep, self.but_stepcf_set_span, self.lbl_step,
+            # управление амплитудой
+            self.label_reflevel, self.amp_unit, self.label_range,
+            self.combo_preamp, self.label_atten, self.lbl_range,
+            self.transducer, self.atten_auto, self.label_preamp,
+            # управление sweep
             self.combo_det,
             self.combo_trace_acc,
             self.tb_sweep_count,
             self.radio_count, self.radio_single,
+            # управление маркерами
             self.check_auto_max, self.but_mrk_to_cf,
         ]
         for w in controls:
@@ -201,6 +214,10 @@ class ControlsMixin:
             text: новый текст комбобокса (например, 'Off', 'On').
         """
         self._send_cmd(f'preamp:{text}')
+
+    def on_atten_auto_toggled(self, checked: bool) -> None:
+        """Переключить автоаттенюатор на приборе."""
+        self._send_cmd(f'atten_auto_set:{"on" if checked else "off"}')
     # -------------------------------------------------------------------------
 
     # --- Обработчики контролов для управления RBW, VBW -----------------------

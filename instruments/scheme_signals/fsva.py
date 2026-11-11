@@ -21,14 +21,27 @@ def callbacks_map_fsva(form: QMainWindow, ctrl: str):
     return {
         # --- АМПЛИТУДА ---
         'amp': {
-            **_updown(form, 'reflvl'),
-            'label_reflevel': lambda v: form._send_cmd(f'set_reflvl:{v:g}'),
+            'label_reflevel': {
+                'value_accepted': lambda v: form._send_cmd(
+                    f'set_reflvl:{v:g}'),
+                'wheel_step': lambda step: form._send_cmd(
+                    'reflvl_up' if step > 0 else 'reflvl_down'),
+            },
             'amp_unit': form.on_amp_unit_changed,
-            **_updown(form, 'ref_range'),
-            'label_range': lambda v: form._send_cmd(f'set_ref_range:{v:g}'),
+            'label_range': {
+                'value_accepted': lambda v: form._send_cmd(
+                    f'set_ref_range:{v:g}'),
+                'wheel_step': lambda step: form._send_cmd(
+                    'ref_range_up' if step > 0 else 'ref_range_down'),
+            },
             'combo_preamp': form.on_preamp_changed,
-            **_updown(form, 'atten'),
-            'label_atten': lambda v: form._send_cmd(f'set_atten:{round(v)}'),
+            'label_atten': {
+                'value_accepted': lambda v: form._send_cmd(
+                    f'set_atten:{round(v)}'),
+                'wheel_step': lambda step: form._send_cmd(
+                    'atten_up' if step > 0 else 'atten_down'),
+            },
+            'atten_auto': form.on_atten_auto_toggled,
             'combo_transducer': form.on_trans_changed,
         },
 

@@ -4,24 +4,10 @@ from gui.styles import Style
 
 # ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ АМПЛИТУДОЙ
 SECTION_AMP = [
-    # Ref lvl
+    # Ref lvl и Range
     {
         "label": "Ref lvl",
         "widgets": [
-            {
-                'type': 'button',
-                "key": "but_reflvl_up",
-                "text": "▲",
-                "stretch": 1,
-                "style": Style.BUT_SQUARE,
-            },
-            {
-                'type': 'button',
-                "key": "but_reflvl_down",
-                "text": "▼",
-                "stretch": 1,
-                "style": Style.BUT_SQUARE,
-            },
             {
                 "type": "value_edit",
                 "key": "label_reflevel",
@@ -34,57 +20,36 @@ SECTION_AMP = [
                 "items": AMP_UNITS,
                 "stretch": 1,
             },
-        ]
-    },
-    # Range
-    {
-        "label": "Range, dB",
-        "widgets": [
             {
-                'type': 'button',
-                "key": "but_ref_range_up",
-                "text": "▲",
+                'type': 'label',
+                'text': 'Range, dB',
+                'key': 'lbl_range',
                 "stretch": 1,
-                "style": Style.BUT_SQUARE,
-            },
-            {
-                'type': 'button',
-                "key": "but_ref_range_down",
-                "text": "▼",
-                "stretch": 1,
-                "style": Style.BUT_SQUARE,
+                'align': 'right',
             },
             {
                 "type": "value_edit",
                 "key": "label_range",
-                "stretch": 8,
+                "stretch": 1,
                 "style": Style.LBL_BORDER,
             },
         ]
     },
-    # Atten
+    # Atten и PreAmp
     {
         "label": "Atten, dB",
         "widgets": [
-            {
-                'type': 'button',
-                "key": "but_atten_up",
-                "text": "▲",
-                "stretch": 1,
-                "style": Style.BUT_SQUARE,
-            },
-            {
-                'type': 'button',
-                "key": "but_atten_down",
-                "text": "▼",
-                "stretch": 1,
-                "style": Style.BUT_SQUARE,
-            },
             {
                 "type": "value_edit",
                 "key": "label_atten",
                 "stretch": 1,
                 "style": Style.LBL_BORDER,
+            },
+            {
+                'type': 'checkbox',
+                'key': 'atten_auto',
+                'text': 'Auto         ',
+                "stretch": 1,
             },
             {
                 "type": "label",
@@ -94,11 +59,10 @@ SECTION_AMP = [
                 "align": "right",
             },
             {
-                "label": "Preamp",
                 "type": "combo",
                 "key": "combo_preamp",
                 "items": PREAMP_VAL,
-                "stretch": 2,
+                "stretch": 1,
             },
         ]
     },
@@ -139,6 +103,7 @@ SECTION_FREQ = [
             },
             {
                 'type': 'label',
+                'key': 'lbl_step',
                 'text': 'Шаг',
                 "stretch": 1,
             },
@@ -202,6 +167,7 @@ SECTION_FREQ = [
             },
             {
                 'type': 'label',
+                'key': 'lbl_stop',
                 "stretch": 1,
                 'text': 'Стоп',
                 'align': 'right',

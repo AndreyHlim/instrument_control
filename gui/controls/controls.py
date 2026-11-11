@@ -402,12 +402,27 @@ class ValueLineEdit(QLineEdit):
     """
 
     value_accepted = pyqtSignal(float)
+    wheel_step = pyqtSignal(int)        # +1 — колесо вверх, -1 — вниз
 
     def __init__(self, text: str = '', parent=None):
         super().__init__(text, parent)
         validator = QRegularExpressionValidator(
             QRegularExpression(r'-?\d*[.,]?\d*'), self)
         self.setValidator(validator)
+        self._wheel_accum = 0
+
+    def wheelEvent(self, event) -> None:
+        """Колесо над полем → сигнал направления.
+
+        Мышь шлёт по 120 единиц на «щелчок», тачпады — мелкие дельты,
+        поэтому накапливаем и эмитим по полному шагу.
+        """
+        self._wheel_accum += event.angleDelta().y()
+        while abs(self._wheel_accum) >= 120:
+            step = 1 if self._wheel_accum > 0 else -1
+            self._wheel_accum -= 120 * step
+            self.wheel_step.emit(step)
+        event.accept()
 
     def focusInEvent(self, event) -> None:
         super().focusInEvent(event)
