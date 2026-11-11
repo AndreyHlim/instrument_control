@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 from PyQt6.QtWidgets import (QCheckBox, QComboBox, QDoubleSpinBox, QLineEdit,
-                             QRadioButton, QSpinBox)
+                             QRadioButton, QSpinBox, QLabel)
 
 from constants import DETECTORS_FSVA_REV, TRACE_ACC_REV
 
@@ -43,13 +43,11 @@ class StateMixin:
         if state.rbw_type is not None:
             self._set_combo(self.rbw_type, state.rbw_type)
         if state.rbw is not None:
-            rbw_val, rbw_unit = self._format_freq(state.rbw * 1e3).split()
-            self.label_rbw.setText(rbw_val)
-            self._set_combo(self.rbw_unit, rbw_unit)
+            self._safe_set_text(
+                self.label_rbw, self._format_freq(state.rbw * 1e3))
         if state.vbw is not None:
-            vbw_val, vbw_unit = self._format_freq(state.vbw * 1e3).split()
-            self.label_vbw.setText(vbw_val)
-            self._set_combo(self.vbw_unit, vbw_unit)
+            self._safe_set_text(
+                self.label_vbw, self._format_freq(state.vbw * 1e3))
         if state.rbw_auto is not None:
             self._set_checked(self.rbw_auto, state.rbw_auto)
         if state.vbw_auto is not None:
@@ -97,16 +95,15 @@ class StateMixin:
         if state.sweep_count is not None:
             self._set_spin(self.tb_sweep_count, state.sweep_count)
 
-    def _safe_set_text(self, widget: QLineEdit, text: str) -> None:
-        """Записать значение в поле, не мешая пользователю.
+    def _safe_set_text(self, widget: QLineEdit | QLabel, text: str) -> None:
+        """Записать значение в поле или метку, не мешая пользователю.
 
-        Пропускаем запись, только если пользователь реально набрал
-        текст в поле (фокус + isModified) — иначе setText затёр бы
-        недопечатанное значение. Просто фокус с выделением не мешает:
-        после колёсика или прихода состояния с прибора поле
-        перезаписывается сразу.
+        Для полей ввода пропускаем запись, только если пользователь
+        реально набрал текст (фокус + isModified). Для меток — всегда
+        перезаписываем: редактирования там не бывает.
         """
-        if widget.hasFocus() and widget.isModified():
+        if isinstance(widget, QLineEdit) \
+                and widget.hasFocus() and widget.isModified():
             return
         if widget.text() == text:
             return

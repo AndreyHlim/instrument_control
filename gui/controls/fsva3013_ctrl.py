@@ -1,4 +1,4 @@
-from constants import (AMP_UNITS, ANT_NAMES, DETECTORS_FSVA, FREQ_DIM,
+from constants import (AMP_UNITS, ANT_NAMES, DETECTORS_FSVA,
                        PREAMP_VAL, RBW_TYPES_FILTER, TRACE_ACC)
 from gui.styles import Style
 
@@ -186,7 +186,7 @@ SECTION_FREQ = [
 SECTION_RBW = [
     {
         "type": "combo",
-        "label": "Тип фильтра",
+        "label": "Фильтр",
         "key": "rbw_type_filter",
         "items": RBW_TYPES_FILTER,
     },
@@ -194,30 +194,10 @@ SECTION_RBW = [
         "label": "RBW",
         "widgets": [
             {
-                'type': 'button',
-                "key": "but_rbw_up",
-                "text": "▲",
-                "stretch": 1,
-                "style": Style.BUT_SQUARE,
-            },
-            {
-                'type': 'button',
-                "key": "but_rbw_down",
-                "text": "▼",
-                "stretch": 1,
-                "style": Style.BUT_SQUARE,
-            },
-            {
-                "type": "label",
+                "type": "wheel_label",
                 "key": "label_rbw",
                 "stretch": 8,
                 "style": Style.LBL_BORDER,
-            },
-            {
-                "type": "combo",
-                "key": "rbw_unit",
-                "items": FREQ_DIM.keys(),
-                "stretch": 1,
             },
             {
                 "type": "checkbox",
@@ -225,37 +205,18 @@ SECTION_RBW = [
                 "text": "Auto",
                 "value": False,
                 "stretch": 1,
-            }
-        ]
-    },
-    {
-        "label": "VBW",
-        "widgets": [
-            {
-                'type': 'button',
-                "key": "but_vbw_up",
-                "text": "▲",
-                "stretch": 1,
-                "style": Style.BUT_SQUARE,
             },
             {
-                'type': 'button',
-                "key": "but_vbw_down",
-                "text": "▼",
+                'type': 'label',
+                'key': 'lbl_vbw',
+                "text": "VBW",
                 "stretch": 1,
-                "style": Style.BUT_SQUARE,
             },
             {
-                "type": "label",
+                "type": "wheel_label",
                 "key": "label_vbw",
                 "stretch": 8,
                 "style": Style.LBL_BORDER,
-            },
-            {
-                "type": "combo",
-                "key": "vbw_unit",
-                "items": FREQ_DIM.keys(),
-                "stretch": 1,
             },
             {
                 "type": "checkbox",
@@ -263,7 +224,7 @@ SECTION_RBW = [
                 "text": "Auto",
                 "value": False,
                 "stretch": 1,
-            }
+            },
         ]
     },
 ]

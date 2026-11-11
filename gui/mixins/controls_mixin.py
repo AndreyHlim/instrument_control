@@ -34,15 +34,10 @@ class ControlsMixin:
         # Ручное управление анализатором
         # RBW, VBW
         self.rbw_type = self.sec_rbw.widgets['rbw_type_filter']
-        self.but_rbw_up = self.sec_rbw.widgets['but_rbw_up']
-        self.but_rbw_down = self.sec_rbw.widgets['but_rbw_down']
         self.label_rbw = self.sec_rbw.widgets['label_rbw']
-        self.rbw_unit = self.sec_rbw.widgets['rbw_unit']
         self.rbw_auto = self.sec_rbw.widgets['rbw_auto']
-        self.but_vbw_up = self.sec_rbw.widgets['but_vbw_up']
-        self.but_vbw_down = self.sec_rbw.widgets['but_vbw_down']
+        self.lbl_vbw = self.sec_rbw.widgets['lbl_vbw']
         self.label_vbw = self.sec_rbw.widgets['label_vbw']
-        self.vbw_unit = self.sec_rbw.widgets['vbw_unit']
         self.vbw_auto = self.sec_rbw.widgets['vbw_auto']
 
         # SPAN
@@ -116,10 +111,8 @@ class ControlsMixin:
         """
         controls = [
             # управление RBW / VBW
-            self.rbw_type, self.but_rbw_down, self.label_rbw, self.but_rbw_up,
-            self.rbw_unit, self.rbw_auto,
-            self.but_vbw_down, self.label_vbw, self.but_vbw_up,
-            self.vbw_unit, self.vbw_auto,
+            self.rbw_type, self.label_rbw, self.rbw_auto,
+            self.label_vbw, self.vbw_auto, self.lbl_vbw,
             # управление частотой / спаном / шагом
             self.label_span, self.but_span_set_stepcf,
             self.but_span_set_div2, self.but_span_set_mul2,
@@ -229,14 +222,6 @@ class ControlsMixin:
         """
         self._send_cmd(f'rbw_type_set:{text}')
 
-    def on_rbw_unit_changed(self, text: str) -> None:
-        """Сменить единицу отображения RBW.
-
-        Args:
-            text: 'Гц', 'кГц' или 'МГц'.
-        """
-        self._send_cmd(f'rbw_unit:{text}')
-
     def on_rbw_auto_toggled(self, checked: bool) -> None:
         """Включить/выключить авто-RBW.
 
@@ -244,24 +229,6 @@ class ControlsMixin:
             checked: новое состояние переключателя (True — auto on).
         """
         self._send_cmd(f'rbw_auto_set:{"on" if checked else "off"}')
-
-    def on_vbw_unit_changed(self) -> None:
-        """Применить VBW из поля с учётом выбранной единицы.
-
-        Считывает значение из self.label_vbw (допускает запятую как
-        десятичный разделитель), умножает на коэффициент единицы
-        ('Гц'/'кГц'/'МГц') и отправляет на прибор в герцах.
-
-        Note:
-            При некорректном числе в поле команда не отправляется.
-        """
-        try:
-            val = float(self.label_vbw.text().replace(',', '.'))
-        except ValueError:
-            return
-        factor = {'Гц': 1, 'кГц': 1e3, 'МГц': 1e6}.get(
-            self.vbw_unit.currentText(), 1)
-        self._trace_worker.send_command(f'set_vbw:{val * factor:.0f}')
 
     def on_vbw_auto_toggled(self, checked: bool) -> None:
         """Включить/выключить авто-VBW.

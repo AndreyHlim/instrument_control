@@ -161,6 +161,10 @@ class CollapsibleSection(QWidget):
             widget = FreqLineEdit(item.get("text", ""))
             if "style" in item:
                 widget.setStyleSheet(item["style"])
+        elif w_type == "wheel_label":
+            widget = WheelLabel(item.get("text", ""))
+            if "style" in item:
+                widget.setStyleSheet(item["style"])
         elif w_type == "value_edit":
             widget = ValueLineEdit(item.get("text", ""))
             if "style" in item:
@@ -238,7 +242,8 @@ class CollapsibleSection(QWidget):
           toggled, valueChanged, currentTextChanged), для FreqLineEdit —
           freq_accepted;
         - dict {'<имя сигнала>': handler} — подключение по именам
-          (для FreqLineEdit: 'freq_accepted', 'wheel_step').
+          (именованные сигналы виджета
+          (freq_accepted, wheel_step, value_accepted)).
 
         Note:
             Виджеты без известного типа (например, QLabel) молча
@@ -445,3 +450,29 @@ class ValueLineEdit(QLineEdit):
         self.setModified(False)
         self.clearFocus()
         self.value_accepted.emit(value)
+
+
+class WheelLabel(QLabel):
+    """Метка значения с колесом мыши.
+
+    Показывает значение с размерностью (строка из PlotMixin._format_freq),
+    редактирование не предусмотрено — изменение только колесом
+    (и кнопками ▲▼). Колесо эмитит направление, команду выбирает карта.
+    """
+
+    wheel_step = pyqtSignal(int)        # +1 — колесо вверх, -1 — вниз
+
+    def __init__(self, text: str = '', parent=None):
+        super().__init__(text, parent)
+        self._wheel_accum = 0
+
+    def wheelEvent(self, event) -> None:
+        """
+        Колесо над меткой → сигнал направления (аккумулятор для тачпадов).
+        """
+        self._wheel_accum += event.angleDelta().y()
+        while abs(self._wheel_accum) >= 120:
+            step = 1 if self._wheel_accum > 0 else -1
+            self._wheel_accum -= 120 * step
+            self.wheel_step.emit(step)
+        event.accept()

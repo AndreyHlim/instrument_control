@@ -55,7 +55,7 @@ class Style(StrEnum):
     # Label в рамке
     LBL_BORDER = (
         "qproperty-alignment: 'AlignHCenter|AlignVCenter'; "
-        # "border: 1px solid #ababab; "     # Тонкая серая рамка
+        "border: 1px solid #ababab; "     # Тонкая серая рамка
         "min-height: 18px;"
         "max-height: 18px;"
         # "border-radius: 2px; "          # Небольшое скругления

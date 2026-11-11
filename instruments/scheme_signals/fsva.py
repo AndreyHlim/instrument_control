@@ -69,11 +69,15 @@ def callbacks_map_fsva(form: QMainWindow, ctrl: str):
         # --- RBW, VBW ---
         'rbw': {
             'rbw_type_filter': form.rbw_type_changed,
-            **_updown(form, 'rbw'),
-            'rbw_unit': form.on_rbw_unit_changed,
+            'label_rbw': {
+                'wheel_step': lambda step: form._send_cmd(
+                    'rbw_up' if step > 0 else 'rbw_down'),
+            },
             'rbw_auto': form.on_rbw_auto_toggled,
-            **_updown(form, 'vbw'),
-            'vbw_unit': form.on_vbw_unit_changed,
+            'label_vbw': {
+                'wheel_step': lambda step: form._send_cmd(
+                    'vbw_up' if step > 0 else 'vbw_down'),
+            },
             'vbw_auto': form.on_vbw_auto_toggled,
         },
         'sweep': {
