@@ -62,6 +62,10 @@ class ConnectionMixin:
         try:
             self._analyzer = RS_FSVA3013(ip)
         except (ConnectionError, ValueError) as e:
+            QMessageBox.critical(
+                self, 'Ошибка',
+                f'Не удалось подключиться к анализатору по адресу {ip}'
+            )
             print(f"[ANALYZER] Не удалось подключиться: {e}")
             return
 
