@@ -27,6 +27,9 @@ class ControlsMixin:
         Заполняет атрибуты для секций RBW/VBW, Частоты, Амплитуды, Sweep
         и Markers. Вызывать после set_layout_left, до signal_connection
         и _apply_state_params.
+
+        В конце приводит контролы анализатора в заблокированное
+        состояние — стартовая позиция «прибор не подключён».
         """
         # Ручное управление анализатором
         # RBW, VBW
@@ -62,23 +65,17 @@ class ControlsMixin:
 
         # REF LEVEL
         self.label_reflevel = self.sec_ampl.widgets['label_reflevel']
-        # self.but_reflvl_down = self.sec_ampl.widgets['but_reflvl_down']
-        # self.but_reflvl_up = self.sec_ampl.widgets['but_reflvl_up']
         self.amp_unit = self.sec_ampl.widgets['amp_unit']
         self.transducer = self.sec_ampl.widgets['combo_transducer']
         # REF RANGE
         self.label_range = self.sec_ampl.widgets['label_range']
         self.lbl_range = self.sec_ampl.widgets['lbl_range']
-        # self.but_ref_range_down = self.sec_ampl.widgets['but_ref_range_down']
-        # self.but_ref_range_up = self.sec_ampl.widgets['but_ref_range_up']
         # PREAMP
         self.combo_preamp = self.sec_ampl.widgets['combo_preamp']
         # ATTEN
         self.label_atten = self.sec_ampl.widgets['label_atten']
         self.atten_auto = self.sec_ampl.widgets['atten_auto']
         self.label_preamp = self.sec_ampl.widgets['label_preamp']
-        # self.but_atten_down = self.sec_ampl.widgets['but_atten_down']
-        # self.but_atten_up = self.sec_ampl.widgets['but_atten_up']
 
         # SWEEP
         self.combo_det = self.sec_sweep.widgets['combo_det']
@@ -88,6 +85,8 @@ class ControlsMixin:
         self.radio_single = self.sec_sweep.widgets['radio_single']
         self.check_auto_max = self.sec_mrk.widgets['check_auto_max']
         self.but_mrk_to_cf = self.sec_mrk.widgets['but_mrk_to_cf']
+
+        self._set_analyzer_controls_enabled(False)
 
     def _send_cmd(self, command: str) -> None:
         """Отправить команду прибору через рабочий поток.
