@@ -9,14 +9,15 @@ from gui.mixins.connection_mixin import ConnectionMixin
 from gui.mixins.controls_mixin import ControlsMixin
 from gui.mixins.panels_mixin import PanelsMixin
 from gui.mixins.plot_mixin import PlotMixin
+from gui.mixins.results_mixin import ResultsMixin
 from gui.mixins.signals_mixin import SignalsMixin
 from gui.mixins.state_mixin import StateMixin
 from gui.mixins.waterfall_mixin import WaterfallMixin
 
 
 class MainWindow(
-    QMainWindow, PanelsMixin, WaterfallMixin, PlotMixin, StateMixin,
-    ControlsMixin, ConnectionMixin, SignalsMixin,
+    QMainWindow, PanelsMixin, WaterfallMixin, ResultsMixin, PlotMixin,
+    StateMixin, ControlsMixin, ConnectionMixin, SignalsMixin,
 ):
     def __init__(self):
         super().__init__()

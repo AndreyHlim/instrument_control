@@ -1,10 +1,10 @@
 import pyqtgraph as pg
 from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QPalette
+from PyQt6.QtWidgets import QApplication
 
 from constants import FREQ_DIM
 from dataclass import DeviceState
-from PyQt6.QtGui import QPalette
-from PyQt6.QtWidgets import QApplication
 
 
 class PlotMixin:

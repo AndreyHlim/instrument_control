@@ -1,8 +1,8 @@
 import numpy as np
 import pyqtgraph as pg
-from PyQt6.QtWidgets import QWidget, QApplication, QGridLayout
-from PyQt6.QtGui import QPalette
 from PyQt6.QtCore import QTimer
+from PyQt6.QtGui import QPalette
+from PyQt6.QtWidgets import QApplication, QGridLayout, QWidget
 
 
 class Waterfall(QWidget):

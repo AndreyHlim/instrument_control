@@ -67,6 +67,7 @@ class PanelsMixin:
 
     def settings_mid_panel(self) -> None:
         """Настроить среднюю панель: графики и сопутствующие элементы."""
+        self.settings_results()    # <- от ResultsMixin
         self.settings_plot()       # <- от PlotMixin
         self.settings_waterfall()  # <- от WaterfallMixin
 

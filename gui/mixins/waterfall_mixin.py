@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QVBoxLayout, QSizePolicy
+from PyQt6.QtWidgets import QSizePolicy, QVBoxLayout
 
 from gui.controls.controls import CollapsibleSection
 from gui.spectrogram import Waterfall
