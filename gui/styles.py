@@ -1,5 +1,8 @@
 from enum import StrEnum
 
+FRAME_RADIUS = 0
+BORDER_COLOR = '#777777'
+
 
 class Style(StrEnum):
     """Управление стилями для элементов управления формы программы."""
@@ -17,6 +20,8 @@ class Style(StrEnum):
         "max-height: 18px;"
         "background-color: #ffffff;"
     )
+
+    FRAME_BORDER = '1px solid #777777'
 
     # Квадратные кнопки
     BUT_SQUARE = (

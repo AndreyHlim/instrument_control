@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Union
 
-from PyQt6.QtCore import QRegularExpression, Qt, QTimer, pyqtSignal
+from PyQt6.QtCore import QRectF, QRegularExpression, Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import (QColor, QIcon, QPainter, QPen,
                          QRegularExpressionValidator)
 from PyQt6.QtWidgets import (QCheckBox, QComboBox, QDoubleSpinBox, QGridLayout,
@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (QCheckBox, QComboBox, QDoubleSpinBox, QGridLayout,
                              QVBoxLayout, QWidget)
 
 from function import resource_path
-from gui.styles import Style
+from gui.styles import BORDER_COLOR, FRAME_RADIUS, Style
 
 
 class CollapsibleSection(QWidget):
@@ -289,8 +289,13 @@ class CollapsibleSection(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        painter.setPen(QPen(QColor("black"), 1))
-        painter.drawRoundedRect(self.rect().adjusted(0, 0, -1, -1), 4, 4)
+        painter.setPen(QPen(QColor(BORDER_COLOR), 1))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        # Полпикселя внутрь: линия центрируется в пикселе,
+        # правая/нижняя кромки перестают выглядеть «тенью»
+        painter.drawRoundedRect(
+            QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5),
+            FRAME_RADIUS, FRAME_RADIUS)
 
     def _on_header_click(self, event):
         self._toggle(not self._is_expanded)

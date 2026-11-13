@@ -1,10 +1,30 @@
 import pyqtgraph as pg
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QPalette
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtCore import QEvent, QObject, QRectF, Qt, QTimer
+from PyQt6.QtGui import QColor, QPainter, QPalette, QPen
+from PyQt6.QtWidgets import QApplication, QWidget
 
 from constants import FREQ_DIM
 from dataclass import DeviceState
+from gui.styles import BORDER_COLOR, FRAME_RADIUS
+
+
+class _RoundedBorderOverlay(QWidget):
+    """Прозрачная накладка поверх графика: рисует только скруглённую рамку.
+
+    Тот же приём, что в CollapsibleSection: рамка рисуется самим
+    виджетом, а не stylesheet'ом. Полотно графика оставляем непрозрачным
+    цветом окна — тогда углы за дугой рамки визуально неотличимы от фона.
+    """
+
+    def paintEvent(self, event) -> None:
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(QPen(QColor(BORDER_COLOR), 1))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        # Полпикселя внутрь, чтобы линия не срезалась краем виджета
+        painter.drawRoundedRect(
+            QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5),
+            FRAME_RADIUS, FRAME_RADIUS)
 
 
 class PlotMixin:
@@ -34,6 +54,7 @@ class PlotMixin:
             сетки при этом НЕ пересоздаются — позиции задаются позже
             в update_state.
         """
+        # Фон полотна
         self.plotWidget.setBackground(
             QApplication.instance().palette().color(QPalette.ColorRole.Window))
 
@@ -143,6 +164,14 @@ class PlotMixin:
 
         # Стартовая сетка до подключения прибора
         self._apply_start_grid()
+
+        # Рамка основного графика — накладкой поверх, как у секций
+        self._frame_overlay = _RoundedBorderOverlay(self.plotWidget)
+        self._frame_overlay.setAttribute(
+            Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self._frame_overlay.setGeometry(self.plotWidget.rect())
+        self._frame_overlay.raise_()
+        self.plotWidget.installEventFilter(self)
 
     def _reposition_labels(self) -> None:
         """Метки в пикселях: при изменении геометрии окна перепривязать."""
@@ -465,3 +494,12 @@ class PlotMixin:
         self._update_x_grid(self._current_x_min, self._current_x_max)
         self._update_y_grid(self._current_y_min, self._current_y_max)
         self._update_info_labels(self._current_x_min, self._current_x_max)
+
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        """Накладка-рамка следует за геометрией графика."""
+        if watched is self.plotWidget and event.type() == QEvent.Type.Resize:
+            self._frame_overlay.setGeometry(self.plotWidget.rect())
+        parent_filter = getattr(super(), 'eventFilter', None)
+        if parent_filter is not None:
+            return parent_filter(watched, event)
+        return False
