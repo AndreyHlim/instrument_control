@@ -69,6 +69,7 @@ class ConnectionMixin:
             print(f"[ANALYZER] Не удалось подключиться: {e}")
             return
 
+        self._analyzer.settings_start()
         self._start_trace_thread()
         self._set_analyzer_conn_state(True)
 

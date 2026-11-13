@@ -20,6 +20,7 @@ class Dim(IntEnum):
 class RS_FSVA3013:
     FREQ_MIN_HZ = 10
     FREQ_MAX_HZ = 13e9
+    _start_settings_applied = False
 
     def __init__(self, address: str):
         """Инициализация анализатора спектра.
@@ -698,6 +699,18 @@ class RS_FSVA3013:
     def set_auto_scale(self):
         """Установить автомасштаб"""
         self._resource.write(':DISP:WIND1:SUBW:TRAC:Y:SCAL:AUTO ONCE')
+
+    def settings_start(self) -> None:
+        """
+        Установить настройки анализатора
+        после старта программы и поделючения к анализатору
+        """
+        if RS_FSVA3013._start_settings_applied:
+            return
+        path = r"C:\R_S\Instr\user\QuickSave\QuickSave5"
+        self._resource.write(f":MMEM:LOAD:STAT 1,'{path}'")
+        self._resource.query('*OPC?')
+        RS_FSVA3013._start_settings_applied = True
 
 
 class Marker:
