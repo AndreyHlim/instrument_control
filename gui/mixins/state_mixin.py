@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
-from PyQt6.QtWidgets import (QCheckBox, QComboBox, QDoubleSpinBox, QLineEdit,
-                             QRadioButton, QSpinBox, QLabel)
+from PyQt6.QtWidgets import (QCheckBox, QComboBox, QDoubleSpinBox, QLabel,
+                             QLineEdit, QRadioButton, QSpinBox)
 
 from constants import DETECTORS_FSVA_REV, TRACE_ACC_REV
 

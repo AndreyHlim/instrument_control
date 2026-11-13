@@ -1,5 +1,5 @@
-from constants import (AMP_UNITS, ANT_NAMES, DETECTORS_FSVA,
-                       PREAMP_VAL, RBW_TYPES_FILTER, TRACE_ACC)
+from constants import (AMP_UNITS, ANT_NAMES, DETECTORS_FSVA, PREAMP_VAL,
+                       RBW_TYPES_FILTER, TRACE_ACC)
 from gui.styles import Style
 
 # ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ АМПЛИТУДОЙ
