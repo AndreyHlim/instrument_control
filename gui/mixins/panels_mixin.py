@@ -67,7 +67,8 @@ class PanelsMixin:
 
     def settings_mid_panel(self) -> None:
         """Настроить среднюю панель: графики и сопутствующие элементы."""
-        self.settings_plot()   # делегирование в PlotMixin
+        self.settings_plot()       # <- от PlotMixin
+        self.settings_waterfall()  # <- от WaterfallMixin
 
     def settings_right_panel(self) -> None:
         """Заготовка под будущую правую панель."""

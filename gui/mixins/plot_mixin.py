@@ -3,6 +3,8 @@ from PyQt6.QtCore import Qt, QTimer
 
 from constants import FREQ_DIM
 from dataclass import DeviceState
+from PyQt6.QtGui import QPalette
+from PyQt6.QtWidgets import QApplication
 
 
 class PlotMixin:
@@ -29,7 +31,8 @@ class PlotMixin:
             сетки при этом НЕ пересоздаются — позиции задаются позже
             в update_state.
         """
-        self.plotWidget.setBackground((255, 255, 255))
+        self.plotWidget.setBackground(
+            QApplication.instance().palette().color(QPalette.ColorRole.Window))
 
         # Защита от дублей при пересоздании
         if hasattr(self, '_curve') and self._curve is not None:
@@ -346,6 +349,19 @@ class PlotMixin:
                 # Подписи по Y: строго каждые 10 дБ
                 axis_left = self.plotWidget.getAxis('left')
                 axis_left.setTickSpacing(major=10, minor=10)
+
+            # Водопад (live): шкала цветов — как ось Y графика
+            if (
+                self._current_reflevel is not None
+                and self._current_range is not None
+            ):
+                self.add_waterfall_frame(
+                    state.levels,
+                    vmin=self._current_reflevel - self._current_range,
+                    vmax=self._current_reflevel,
+                )
+            else:
+                self.add_waterfall_frame(state.levels)
 
         # --- Храним последние значения reflevel и range ---
         if state.reflevel is not None:

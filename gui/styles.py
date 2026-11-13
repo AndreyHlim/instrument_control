@@ -49,7 +49,7 @@ class Style(StrEnum):
         "qproperty-alignment:"
         "'AlignHCenter|AlignVCenter';"
         "min-height: 18px;"
-        "max-height: 18px;}"
+        "max-height: 18px;"
     )
 
     # Label в рамке
