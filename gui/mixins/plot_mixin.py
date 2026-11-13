@@ -16,6 +16,9 @@ class PlotMixin:
     - self._apply_state_params (метод StateMixin — вызывается в конце
       update_state, связность через множественное наследование).
     """
+    # Стартовый экран до подключения прибора
+    START_X_MIN, START_X_MAX = 750*1e6, 1.25*1e9    # Гц: 0.75…1.25 ГГц
+    START_REFLEVEL, START_RANGE = -50, 100.0    # дБ
 
     def settings_plot(self) -> None:
         """Настроить график и создать вспомогательные элементы.
@@ -132,12 +135,14 @@ class PlotMixin:
         vb.sigRangeChanged.connect(self._on_x_range_changed)
         # Колесо мыши над графиком = изменение span (вместо кнопок)
         vb.sigResized.connect(self._reposition_labels)
-        self.plotWidget.showGrid(x=False, y=True)
 
         pi = self.plotWidget.getPlotItem()
         vb = pi.getViewBox()
         pi.hideButtons()            # скрыть кнопку автомасштаба
         vb.setMenuEnabled(False)    # запретить контекстное меню графика
+
+        # Стартовая сетка до подключения прибора
+        self._apply_start_grid()
 
     def _reposition_labels(self) -> None:
         """Метки в пикселях: при изменении геометрии окна перепривязать."""
@@ -389,22 +394,7 @@ class PlotMixin:
                 self._updating_from_state = False
 
                 # Переставляем горизонтальные линии через каждые 10 дБ
-                step_y = 10
-                start_y = (y_min // step_y) * step_y
-                if start_y < y_min:
-                    start_y += step_y
-
-                idx = 0
-                y = start_y
-                while y < y_max and idx < len(self._hgrid_lines):
-                    self._hgrid_lines[idx].setPos(y)
-                    self._hgrid_lines[idx].setVisible(True)
-                    y += step_y
-                    idx += 1
-                # Прячем лишние линии из пула
-                while idx < len(self._hgrid_lines):
-                    self._hgrid_lines[idx].setVisible(False)
-                    idx += 1
+                self._update_y_grid(y_min, y_max)
 
                 if (
                     self._current_x_min is not None
@@ -429,3 +419,49 @@ class PlotMixin:
 
         # Параметры (None = не опрашивался в этом кадре)
         self._apply_state_params(state)
+
+    def _update_y_grid(self, y_min: float, y_max: float) -> None:
+        """Переставить горизонтальные линии сетки (шаг 10 дБ) и ось Y."""
+        step_y = 10
+        start_y = (y_min // step_y) * step_y
+        if start_y < y_min:
+            start_y += step_y
+
+        idx = 0
+        y = start_y
+        while y < y_max and idx < len(self._hgrid_lines):
+            self._hgrid_lines[idx].setPos(y)
+            self._hgrid_lines[idx].setVisible(True)
+            y += step_y
+            idx += 1
+        # Прячем лишние линии из пула
+        while idx < len(self._hgrid_lines):
+            self._hgrid_lines[idx].setVisible(False)
+            idx += 1
+
+        self.plotWidget.getAxis('left').setTickSpacing(major=10, minor=10)
+
+    def _apply_start_grid(self) -> None:
+        """Сетка и диапазоны до первого кадра с прибора.
+
+        Значения совпадают с теми, что обычно приходят с первым кадром,
+        поэтому после подключения экран не «прыгает».
+        """
+        self._current_x_min = self.START_X_MIN
+        self._current_x_max = self.START_X_MAX
+        self._current_reflevel = self.START_REFLEVEL
+        self._current_range = self.START_RANGE
+        self._current_y_min = self._current_reflevel - self._current_range
+        self._current_y_max = self._current_reflevel
+
+        vb = self.plotWidget.getPlotItem().getViewBox()
+        self._updating_from_state = True
+        vb.setRange(
+            xRange=(self._current_x_min, self._current_x_max),
+            yRange=(self._current_y_min, self._current_y_max),
+            padding=0)
+        self._updating_from_state = False
+
+        self._update_x_grid(self._current_x_min, self._current_x_max)
+        self._update_y_grid(self._current_y_min, self._current_y_max)
+        self._update_info_labels(self._current_x_min, self._current_x_max)
