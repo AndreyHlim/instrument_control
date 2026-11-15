@@ -71,6 +71,7 @@ SECTION_AMP = [
         'label': 'Калибровка',
         'key': 'combo_transducer',
         'items': ANT_NAMES.values(),
+        'style': Style.COMBO_BOX,
     },
 ]
 

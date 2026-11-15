@@ -42,6 +42,7 @@ class MainWindow(
 def main():
     app = QApplication(sys.argv)
     win = MainWindow()
+    win.setWindowTitle("Управление измерениями")
     win.show()
     sys.exit(app.exec())
 

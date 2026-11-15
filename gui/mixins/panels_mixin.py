@@ -7,6 +7,9 @@ from gui.controls import fsva3013_ctrl as FSVA
 from gui.controls.agilent_33220a import SECTION_SINGEN
 from gui.controls.connect import SECTION_INSTR
 from gui.controls.controls import CollapsibleSection
+from gui.controls.methods.method_1 import SECTION_M1
+from gui.controls.methods.method_2 import SECTION_M2
+from gui.controls.methods.method_3 import SECTION_M3
 from gui.styles import Style
 
 
@@ -164,9 +167,17 @@ class PanelsMixin:
         Секции стартуют свёрнутыми, как «Амплитуда». Контент каждой
         добавляется через add_inputs со своей схемой, когда он появится.
         """
+        """Создать секции методов измерений на правой панели.
+
+        Секции стартуют свёрнутыми, как «Амплитуда». Контент каждой —
+        схема SECTION_* из gui/controls/methods.
+        """
         self.sec_method_1 = self._add_method_section('Метод измерений 1')
+        self.sec_method_1.add_inputs(SECTION_M1)
         self.sec_method_2 = self._add_method_section('Метод измерений 2')
+        self.sec_method_2.add_inputs(SECTION_M2)
         self.sec_method_3 = self._add_method_section('Метод измерений 3')
+        self.sec_method_3.add_inputs(SECTION_M3)
 
     def _add_method_section(self, title: str) -> CollapsibleSection:
         """Создать одну секцию метода: свёрнутая, прижата к верху панели."""

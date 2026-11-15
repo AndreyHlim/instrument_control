@@ -93,17 +93,11 @@ class CollapsibleSection(QWidget):
                 if item_obj:
                     # Центрируем текст по горизонтали и вертикали
                     item_obj.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            if "style" in item:
+                widget.setStyleSheet(item["style"])
 
-            # Дополнительно центрируем текст на самой плашке закрытого Combobox
-            widget.setStyleSheet(
-                "QComboBox {qproperty-alignment: "
-                "'AlignHCenter|AlignVCenter';"
-                "min-height: 18px;max-height: 18px;}"
-            )
         elif w_type == "button":
             widget = QPushButton(item.get("text", ""))
-            if len(item.get("text", "")) <= 3:
-                widget.setMaximumWidth(30)
             if "style" in item:
                 widget.setStyleSheet(item["style"])
             if "icon" in item and item["icon"]:
@@ -171,6 +165,7 @@ class CollapsibleSection(QWidget):
                 widget.setStyleSheet(item["style"])
 
         if widget and key:
+            widget.setObjectName(key)
             self.widgets[key] = widget
 
         return widget
@@ -183,6 +178,7 @@ class CollapsibleSection(QWidget):
 
         if label_text:
             lbl = QLabel(label_text)
+            lbl.setStyleSheet(Style.LBL_ROW)
             lbl.setSizePolicy(QSizePolicy.Policy.Preferred,
                               QSizePolicy.Policy.Preferred)
             self.content_layout.addWidget(lbl, current_row, 0)

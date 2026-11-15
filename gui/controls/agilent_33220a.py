@@ -43,7 +43,7 @@ SECTION_SINGEN = [
                 "key": "combo_form_sound",
                 "items": SIGNAL_FORMS,
                 "stretch": 4,
-                "style": Style.H_18,
+                "style": Style.COMBO_BOX,
             },
             {
                 "type": "checkbox",
