@@ -4,6 +4,12 @@ from function import resource_path
 
 FRAME_RADIUS = 0
 BORDER_COLOR = '#777777'
+HEADER_COLOR = '#2c3e50'      # цвет заголовков секций
+DISABLED_BG = '#c4c4c4'       # фон выключенных контролов
+DISABLED_FG = '#777777'       # текст выключенных контролов
+HEADER_BG = '#e8eef5'         # фон полосы заголовка
+HEADER_HOVER_BG = "#d0d1d3"   # фон полосы при наведении
+
 _ARROW = resource_path("gui/icons/combo_arrow.svg").replace("\\", "/")
 
 
@@ -11,9 +17,25 @@ class Style(StrEnum):
     """Управление стилями для элементов управления формы программы."""
 
     # Section Control
-    LABEL_HEADER_SECTION = 'font-weight: bold; color: #2c3e50; border: none;'
+    LABEL_HEADER_SECTION = (
+        f'font-weight: bold; color: {HEADER_COLOR};'
+        "font-family: 'Segoe UI';font-size: 9pt;"
+        "background-color: transparent;border: none;"
+    )
     BUTTON_HEADER = 'QToolButton { border: none; padding: 0px; }'
-    CONTAINER_HEADER = 'border: none; margin: 0px; padding: 0px;'
+    CONTAINER_HEADER = (
+        "QWidget {"
+        "background-color: transparent;"
+        "border: 1px solid transparent;"
+        "padding: 2px 4px 2px 4px;"
+        "}"
+        "QWidget:hover {"
+        f"border: 1px solid {BORDER_COLOR};"
+        # f"border-left-color: {BORDER_COLOR};"
+        # f"border-right-color: {BORDER_COLOR};"
+        f"background-color: {HEADER_HOVER_BG};"
+        "}"
+    )
     WIDGET_SECTION = '.QWidget { border: none; }'
 
     # Поля QLineEdit для ввода значений
@@ -31,8 +53,8 @@ class Style(StrEnum):
         "qproperty-alignment: 'AlignHCenter|AlignVCenter';"  # Центровка
         "}"
         "QLineEdit:disabled {"
-        "color: #777777;"
-        "background-color: #DADADA;"
+        f"color: {DISABLED_FG};"
+        f"background-color: {DISABLED_BG};"
         "border-color: #bbbbbb;"
         "}"
     )
@@ -66,8 +88,8 @@ class Style(StrEnum):
         "QPushButton:hover { background-color: #e6e6e6; }"
         "QPushButton:pressed { background-color: #d0d0d0; }"
         "QPushButton:disabled {"
-        "color: #777777;"
-        "background-color: #c4c4c4;"
+        f"color: {DISABLED_FG};"
+        f"background-color: {DISABLED_BG};"
         "border-color: #bbbbbb;"
         "}"
     )
