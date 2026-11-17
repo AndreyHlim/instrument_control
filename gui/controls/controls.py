@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Union
 
 from PyQt6.QtCore import QRectF, QRegularExpression, Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import (QColor, QIcon, QPainter, QPen,
+from PyQt6.QtGui import (QColor, QIcon, QPainter, QPalette, QPen,
                          QRegularExpressionValidator)
 from PyQt6.QtWidgets import (QCheckBox, QComboBox, QDoubleSpinBox, QGridLayout,
                              QHBoxLayout, QLabel, QLineEdit, QPushButton,
@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (QCheckBox, QComboBox, QDoubleSpinBox, QGridLayout,
                              QVBoxLayout, QWidget)
 
 from function import resource_path
-from gui.styles import BORDER_COLOR, FRAME_RADIUS, Style
+from gui.styles import BORDER_COLOR, FRAME_RADIUS, HEADER_COLOR, Style
 
 
 class CollapsibleSection(QWidget):
@@ -28,7 +28,7 @@ class CollapsibleSection(QWidget):
 
         # --- Заголовок ---
         header_layout = QHBoxLayout()
-        header_layout.setContentsMargins(0, 4, 0, 4)
+        header_layout.setContentsMargins(4, 4, 0, 4)
         header_layout.setSpacing(0)
 
         self.header_button = QToolButton()
@@ -36,7 +36,9 @@ class CollapsibleSection(QWidget):
         self.header_button.setChecked(True)
         self.header_button.setArrowType(Qt.ArrowType.DownArrow)
         self.header_button.setStyleSheet(Style.BUTTON_HEADER)
-
+        pal = self.header_button.palette()
+        pal.setColor(QPalette.ColorRole.ButtonText, QColor(HEADER_COLOR))
+        self.header_button.setPalette(pal)
         self.header_button.toggled.connect(self._toggle_via_button)
 
         self.header_label = QLabel(title)

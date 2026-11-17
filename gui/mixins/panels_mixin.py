@@ -96,9 +96,9 @@ class PanelsMixin:
         content = QWidget()
         self.layout_right = QFormLayout(content)
         self.layout_right.setObjectName('layout_right')
-        self.layout_right.setContentsMargins(0, 5, 5, 5)
-        self.layout_right.setHorizontalSpacing(3)
-        self.layout_right.setVerticalSpacing(5)
+        self.layout_right.setContentsMargins(0, 4, 0, 4)
+        self.layout_right.setHorizontalSpacing(0)
+        self.layout_right.setVerticalSpacing(4)
 
         header = QHBoxLayout()
         header.setContentsMargins(0, 4, 0, 4)
@@ -122,7 +122,7 @@ class PanelsMixin:
         header_container.setStyleSheet(Style.CONTAINER_HEADER)
 
         lay = QVBoxLayout(self.widget_3)
-        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setContentsMargins(0, 5, 5, 0)
         lay.setSpacing(2)
         lay.addWidget(header_container, 0, Qt.AlignmentFlag.AlignTop)
         lay.addWidget(content)

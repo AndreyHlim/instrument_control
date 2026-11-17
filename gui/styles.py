@@ -1,4 +1,6 @@
+import tempfile
 from enum import StrEnum
+from pathlib import Path
 
 from function import resource_path
 
@@ -13,6 +15,28 @@ HEADER_HOVER_BG = "#d0d1d3"   # фон полосы при наведении
 _ARROW = resource_path("gui/icons/combo_arrow.svg").replace("\\", "/")
 
 
+def _make_arrow_svg(name: str, d: str, w: int, h: int) -> str:
+    """Нарисовать шеврон в SVG с цветом заголовков и вернуть путь к файлу."""
+    svg = (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}">'
+        f'<path d="{d}" stroke="{HEADER_COLOR}" stroke-width="0.5" '
+        'fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+        '</svg>'
+    )
+    path = Path(tempfile.gettempdir()) / "analyzer_styles" / name
+    path.parent.mkdir(exist_ok=True)
+    path.write_text(svg, encoding="utf-8")
+    return str(path).replace("\\", "/")
+
+
+_ARROW_DOWN = _make_arrow_svg(
+    "arrow_down.svg", d="M0.75 0.5 L3 2.75 L5.25 0.5", w=6, h=3)
+_ARROW_RIGHT = _make_arrow_svg(
+    "arrow_right.svg", d="M0.5 0.75 L2.75 3 L0.5 5.25", w=3, h=6)
+_ARROW_LEFT = _make_arrow_svg(
+    "arrow_left.svg", d="M4.6 0.6 L2.3 2.5 L4.6 4.4", w=4, h=5)
+
+
 class Style(StrEnum):
     """Управление стилями для элементов управления формы программы."""
 
@@ -22,7 +46,18 @@ class Style(StrEnum):
         "font-family: 'Segoe UI';font-size: 9pt;"
         "background-color: transparent;border: none;"
     )
-    BUTTON_HEADER = 'QToolButton { border: none; padding: 0px; }'
+    BUTTON_HEADER = (
+        "QToolButton {"
+        "border: none;padding: 0px;"
+        "background-color: transparent;"
+        "}"
+        "QToolButton:hover { background-color: transparent; }"
+        "QToolButton:pressed { background-color: transparent; }"
+        "QToolButton:focus { background-color: transparent; }"
+        f"QToolButton::down-arrow {{ image: url(\"{_ARROW_DOWN}\"); }}"
+        f"QToolButton::right-arrow {{ image: url(\"{_ARROW_RIGHT}\"); }}"
+        f"QToolButton::left-arrow {{ image: url(\"{_ARROW_LEFT}\"); }}"
+    )
     CONTAINER_HEADER = (
         "QWidget {"
         "background-color: transparent;"
@@ -31,8 +66,6 @@ class Style(StrEnum):
         "}"
         "QWidget:hover {"
         f"border: 1px solid {BORDER_COLOR};"
-        # f"border-left-color: {BORDER_COLOR};"
-        # f"border-right-color: {BORDER_COLOR};"
         f"background-color: {HEADER_HOVER_BG};"
         "}"
     )
