@@ -30,3 +30,13 @@ class WaterfallMixin:
         self.sec_waterfall.add_row_layout('', self._waterfall)
         self.sec_waterfall._toggle(not self.WATERFALL_COLLAPSED)
         layout.addWidget(self.sec_waterfall)
+
+    def add_waterfall_frame(self, levels, vmin=None, vmax=None) -> None:
+        """Добавить строку в водопад по текущему кадру трассы.
+
+        Прокладка между PlotMixin (кадры из update_state) и Waterfall:
+        все вызовы идут через неё, PlotMixin не знает устройство
+        водопада. Будущие режимы и условия добавления строк меняются
+        здесь, не трогая PlotMixin.
+        """
+        self._waterfall.add_frame(levels, vmin=vmin, vmax=vmax)

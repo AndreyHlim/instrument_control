@@ -22,6 +22,19 @@ class RS_FSVA3013:
     FREQ_MAX_HZ = 13e9
     _start_settings_applied = False
 
+    # Биты STATus:QUESition:POWer:CONDition — индикация ошибок
+    # на дисплее прибора. Карту битов заполняли опытным путём:
+    # неописанные биты приходят строкой 'ERROR <номер бита>'.
+    _OPER_BITS = {
+        0:  'OVLD',
+        2:  'ADC OVLD',
+        4:  'IFOVL',
+        8:  'UNCAL',
+        9:  'LOUNL',
+        10: 'NO REF',
+        11: 'FIFO OVL',
+    }
+
     def __init__(self, address: str):
         """Инициализация анализатора спектра.
 
@@ -124,6 +137,21 @@ class RS_FSVA3013:
                 raise ValueError(f"Некорректное значение в IP‑адресе: {octet}")
 
         return address
+
+    def get_status_errors(self) -> list[str]:
+        """Список активных ошибок индикации дисплея (UNCAL, OVLD и т.п.).
+
+        Возвращает пустой список, если ошибок нет. Биты, не описанные
+        в _OPER_BITS, попадают в строку 'ERROR <номер бита>' —
+        по ним словарь постепенно пополняется вручную.
+        """
+        mask = int(float(self._resource.query(':STAT:QUES:POW:COND?')))
+        code = []
+        for bit in range(mask.bit_length()):
+            if not mask & (1 << bit):
+                continue
+            code.append(self._OPER_BITS.get(bit, f'ERROR {bit}'))
+        return code
 
     def is_run_single_on(self) -> bool:
         return self._resource.query(':INIT:CONT?') == '0'

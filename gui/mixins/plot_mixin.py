@@ -1,6 +1,6 @@
 import pyqtgraph as pg
 from PyQt6.QtCore import QEvent, QObject, QRectF, Qt, QTimer
-from PyQt6.QtGui import QColor, QPainter, QPalette, QPen
+from PyQt6.QtGui import QColor, QFont, QPainter, QPalette, QPen
 from PyQt6.QtWidgets import QApplication, QWidget
 
 from constants import FREQ_DIM
@@ -63,7 +63,8 @@ class PlotMixin:
             self.plotWidget.removeItem(self._curve)
         scene = self.plotWidget.scene()
         for attr in (
-            '_cf_label', '_span_label', '_perdiv_label', '_rvbw_label'
+            '_cf_label', '_span_label', '_perdiv_label', '_rvbw_label',
+            '_errors_label',
         ):
             if hasattr(self, attr) and getattr(self, attr) is not None:
                 scene.removeItem(getattr(self, attr))
@@ -98,6 +99,13 @@ class PlotMixin:
             text='', color="#000000", anchor=(0.5, 1))
         self._rvbw_label = pg.TextItem(
             text='', color="#000000", anchor=(0.5, 1))
+        # Ошибки индикации дисплея (UNCAL, OVLD, ...) — левый нижний угол
+        self._errors_label = pg.TextItem(text='', color="#ff0000",
+                                         anchor=(0, 1))
+        font = QFont('Segoe UI')
+        font.setPointSizeF(10)
+        font.setBold(True)
+        self._errors_label.textItem.setFont(font)
 
         # Метки добавляем прямо в сцену: их позиция задаётся в ПИКСЕЛЯХ
         # области графика, поэтому при панорамировании они не движутся
@@ -105,6 +113,7 @@ class PlotMixin:
         for label in (
             self._cf_label, self._span_label,
             self._perdiv_label, self._rvbw_label,
+            self._errors_label,
         ):
             self.plotWidget.scene().addItem(label)
         self.plotWidget.getAxis('bottom').enableAutoSIPrefix(False)
@@ -142,6 +151,7 @@ class PlotMixin:
         # Последние строки RBW/VBW для метки на графике
         self._rbw_str: str = ''
         self._vbw_str: str = ''
+        self._errors_str: str = ''
 
         # --- Дебаунс для ручного изменения X ---
         self._updating_from_state = False
@@ -279,6 +289,7 @@ class PlotMixin:
 
         self._span_label.setText(f'Span = ±{self._format_freq(span_hz/2)}')
         self._span_label.setPos(rect.right()+50, y_px)
+        self._errors_label.setPos(rect.left() + 2, y_px + 46)
 
     def _format_freq(
         self, hz: float, force_decimals: int | None = None, dim: str = ''
@@ -445,6 +456,11 @@ class PlotMixin:
             and self._current_x_max is not None
         ):
             self._update_info_labels(self._current_x_min, self._current_x_max)
+
+        # Ошибки индикации дисплея (None = кадр без опроса ошибок)
+        if state.errors is not None:
+            self._errors_str = ' '.join(state.errors)
+            self._errors_label.setText(self._errors_str)
 
         # Параметры (None = не опрашивался в этом кадре)
         self._apply_state_params(state)

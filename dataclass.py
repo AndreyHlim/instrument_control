@@ -39,3 +39,6 @@ class DeviceState:
 
     # Маркеры
     marker_level: float | None = None
+
+    # Ошибки
+    errors: list[str] | None = None

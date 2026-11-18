@@ -67,6 +67,7 @@ class TraceWorker(QObject):
             'trace_acc': 50,
             'sweep': 50,
             'sweep_count': 50,
+            'status_errors': 2,
         }
         self._counters = {k: 0 for k in self._poll_intervals}
         self._cmd_to_param = {
@@ -235,6 +236,8 @@ class TraceWorker(QObject):
             state.sweep_single = self._analyzer.is_run_single_on()
         elif param == 'sweep_count':
             state.sweep_count = self._analyzer.get_sweep_count()
+        elif param == 'status_errors':
+            state.errors = self._analyzer.get_status_errors()
 
     def _execute_command(self, cmd: str):
         """Выполнить одну команду на приборе.
