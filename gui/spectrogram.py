@@ -1,9 +1,11 @@
 import numpy as np
 import pyqtgraph as pg
-from PyQt6.QtCore import QPoint, QTimer, Qt, pyqtSignal
+from PyQt6.QtCore import QPoint, QTimer, pyqtSignal
 from PyQt6.QtGui import QPalette
 from PyQt6.QtWidgets import (QAbstractSpinBox, QApplication, QDoubleSpinBox,
-                             QGridLayout, QToolButton, QVBoxLayout, QWidget)
+                             QGridLayout, QSizePolicy, QToolButton,
+                             QVBoxLayout, QWidget)
+
 from gui.styles import Style
 
 
@@ -41,9 +43,9 @@ class Waterfall(QWidget):
     CONTROLS = True     # False — убрать панель совсем
     CTRL_WIDTH = 44     # ширина панели, px
     CTRL_MIN_W = 28
-    SPIN_DECIMALS = 0   # знаков после запятой в спинбоксах
-    SPIN_STEP = 5     # шаг изменения, дБ
-    SPIN_RANGE = (-170, 60)   # допустимые границы, дБ
+    SPIN_DECIMALS = 0           # знаков после запятой в спинбоксах
+    SPIN_STEP = 5               # шаг изменения, дБ
+    SPIN_RANGE = (-200, 200)    # допустимые границы, дБ
 
     scaleChanged = pyqtSignal(float, float, bool)  # vmin, vmax, ручная?
 
@@ -131,13 +133,15 @@ class Waterfall(QWidget):
         self.btn_auto.setCheckable(True)
         self.btn_auto.setChecked(not self._manual)
         self.btn_auto.setToolTip(
-            'A = авто: шкала цветов следует за шкалой экрана.\n'
+            'Auto = авто: шкала цветов следует за шкалой экрана.\n'
             'Выключено — ручная шкала из полей выше и ниже.')
         self.btn_auto.toggled.connect(self._on_auto_toggled)
+        self.btn_auto.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         lay.addWidget(self.sp_max)
         lay.addStretch(1)
-        lay.addWidget(self.btn_auto, 0, Qt.AlignmentFlag.AlignHCenter)
+        lay.addWidget(self.btn_auto)
         lay.addStretch(1)
         lay.addWidget(self.sp_min)
 
