@@ -11,6 +11,7 @@ DISABLED_BG = '#c4c4c4'       # фон выключенных контролов
 DISABLED_FG = '#777777'       # текст выключенных контролов
 HEADER_BG = '#e8eef5'         # фон полосы заголовка
 HEADER_HOVER_BG = "#d0d1d3"   # фон полосы при наведении
+CTRL_ENABLE_TEXT = '#000000'
 
 _ARROW = resource_path("gui/icons/combo_arrow.svg").replace("\\", "/")
 
@@ -74,7 +75,7 @@ class Style(StrEnum):
     # Поля QLineEdit для ввода значений
     TEXT_BOX = (
         "QLineEdit {"
-        "color: #000000;"               # Цвет шрифта
+        f"color: {CTRL_ENABLE_TEXT};"   # Цвет шрифта
         "background-color: #ffffff;"    # Фон
         "border: 1px solid #ababab;"    # Рамка
         "border-radius: 0px;"           # Скругления углов
@@ -95,7 +96,7 @@ class Style(StrEnum):
     # Подписи к полям в секциях — полный набор
     LBL_ROW = (
         "qproperty-alignment: 'AlignLeft|AlignVCenter';"
-        "color: #000000;"                 # Цвет шрифта
+        f"color: {CTRL_ENABLE_TEXT};"     # Цвет шрифта
         "background-color: transparent;"  # Фон — прозрачный
         "border: none;"                   # Без рамки
         "min-height: 18px;"               # Высота (строки полей выровнены)
@@ -109,7 +110,7 @@ class Style(StrEnum):
     # Квадратные кнопки
     BUT_SQUARE = (
         "QPushButton {"
-        "color: #000000;"
+        f"color: {CTRL_ENABLE_TEXT};"
         "background-color: transparent;"
         "border: 1px solid #ababab;"
         "border-radius: 1px;"
@@ -130,7 +131,7 @@ class Style(StrEnum):
     # Высоты элементов
     H_20 = (
         "QPushButton {"
-        "color: #000000;"
+        f"color: {CTRL_ENABLE_TEXT};"
         "background-color: transparent;"
         "border: 1px solid #ababab;"
         "border-radius: 0px;"
@@ -145,10 +146,10 @@ class Style(StrEnum):
     COMBO_BOX = (
         "QComboBox {"
         "background-color: #ffffff;"
-        "color: #000000;"
+        f"color: {CTRL_ENABLE_TEXT};"
         "border: 1px solid #ababab;"
         "border-radius: 0px;"
-        "padding: 0px 4px 0px 8px;"      # правый отступ меньше — место стрелке
+        "padding: 0px 0px 0px 6px;"      # правый отступ меньше — место стрелке
         "font-family: 'Segoe UI';font-size: 9pt;"
         "min-height: 18px;max-height: 18px;"
         "}"
@@ -168,7 +169,7 @@ class Style(StrEnum):
         "}"
         "QComboBox QAbstractItemView {"
         "background-color: #ffffff;"
-        "color: #000000;"
+        f"color: {CTRL_ENABLE_TEXT};"
         "border: 1px solid #ababab;"
         "selection-background-color: #3399ff;"
         "selection-color: #ffffff;"
@@ -176,17 +177,28 @@ class Style(StrEnum):
     )
 
     # Конкретные кнопки
-    BUT_SPAN_TO_STEPCF = (
-        "min-height: 20px;"
-        "max-height: 20px;"
-        "min-width: 68px;"
-        "max-width: 68px;"
-    )
     VAL_CFSTEP_TO_SPAN = (
-        "min-height: 20px;"
-        "max-height: 20px;"
-        "min-width: 45px;"
-        "max-width: 45px;"
+        "QPushButton {"
+        f"color: {CTRL_ENABLE_TEXT};"
+        "background-color: transparent;"
+        "border: 1px solid #ababab;"
+        "border-radius: 0px;"
+        "padding: 0px;"
+        "min-height: 18px;max-height: 18px;"
+        "min-width: 45px;max-width: 45px;"
+        "font-family: 'Segoe UI';font-size: 9pt;"
+        "}"
+        "QPushButton:disabled {"
+        f"color: {DISABLED_FG};"
+        f"background-color: {DISABLED_BG};"
+        "border-color: #bbbbbb;"
+        "}"
+        "QPushButton:hover { background-color: #e6e6e6; }"
+        "QPushButton:pressed { background-color: #d0d0d0; }"
+    )
+    BUT_SPAN_TO_STEPCF = VAL_CFSTEP_TO_SPAN.replace(
+        "min-width: 45px;max-width: 45px;",
+        "min-width: 66px;max-width: 66px;"
     )
 
     # Все QDoubleSpinBox

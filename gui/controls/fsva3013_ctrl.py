@@ -19,6 +19,7 @@ SECTION_AMP = [
                 "key": "amp_unit",
                 "items": AMP_UNITS,
                 "stretch": 1,
+                'style': Style.COMBO_BOX,
             },
             {
                 'type': 'label',
@@ -63,6 +64,7 @@ SECTION_AMP = [
                 "key": "combo_preamp",
                 "items": PREAMP_VAL,
                 "stretch": 1,
+                'style': Style.COMBO_BOX,
             },
         ]
     },
@@ -190,6 +192,7 @@ SECTION_RBW = [
         "label": "Фильтр",
         "key": "rbw_type_filter",
         "items": RBW_TYPES_FILTER,
+        'style': Style.COMBO_BOX,
     },
     {
         "label": "RBW",
@@ -233,16 +236,18 @@ SECTION_RBW = [
 # ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ SWEEP
 SECTION_SWEEP = [
     {
-        "label": "Детектор",
         "type": "combo",
+        "label": "Детектор",
         "key": "combo_det",
         "items": DETECTORS_FSVA.keys(),
+        'style': Style.COMBO_BOX,
     },
     {
-        "label": "Накопление",
         "type": "combo",
+        "label": "Накопление",
         "key": "combo_trace_acc",
         "items": TRACE_ACC.keys(),
+        'style': Style.COMBO_BOX,
     },
     {
         'label': 'Режим Sweep',
