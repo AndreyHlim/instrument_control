@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import QApplication, QWidget
 from constants import FREQ_DIM
 from dataclass import DeviceState
 from gui.styles import BORDER_COLOR, FRAME_RADIUS, Style
+from instruments.fsva import RS_FSVA3013
 
 
 class _RoundedBorderOverlay(QWidget):
@@ -152,6 +153,10 @@ class PlotMixin:
         self._rbw_str: str = ''
         self._vbw_str: str = ''
         self._errors_str: str = ''
+        # Режим накопления/детектор главного графика — для легенды
+        # доп. трасс (кэш: кадр может прийти без опроса этих полей)
+        self._main_trace_acc: str | None = None
+        self._main_trace_det: str | None = None
 
         # --- Дебаунс для ручного изменения X ---
         self._updating_from_state = False
@@ -164,6 +169,7 @@ class PlotMixin:
         # Реакции на мышь над графиком: перетаскивание/колесо меняют
         # span (вместо кнопок), resize перепривязывает пиксельные метки
         vb = self.plotWidget.getPlotItem().getViewBox()
+        self._apply_x_limits()
         vb.sigRangeChanged.connect(self._on_x_range_changed)
         vb.sigResized.connect(self._reposition_labels)
         pi.hideButtons()            # скрыть кнопку автомасштаба
@@ -482,6 +488,13 @@ class PlotMixin:
             self._errors_str = ' '.join(state.errors)
             self._errors_label.setText(self._errors_str)
 
+        # Режим накопления/детектор главного графика (None = кадр
+        # без опроса) — легенда доп. трасс читает кэш каждый кадр
+        if state.trace_acc is not None:
+            self._main_trace_acc = state.trace_acc
+        if state.det is not None:
+            self._main_trace_det = state.det
+
         # Накопительные трассы (AccTracesMixin)
         if hasattr(self, '_acc_traces'):
             self._update_acc_traces(state)
@@ -543,3 +556,16 @@ class PlotMixin:
         if parent_filter is not None:
             return parent_filter(watched, event)
         return False
+
+    def _apply_x_limits(self) -> None:
+        """Зажать панорамирование и зум в рабочий диапазон прибора.
+
+        setLimits ограничивает видимую область жёстко: потянуть левее
+        FREQ_MIN_HZ нельзя, а зум «отдаление» не расширяет окно дальше
+        полного диапазона прибора — при попытке вид сжимается до
+        [FREQ_MIN_HZ, FREQ_MAX_HZ]. Ограничение только по X: ось Y
+        полностью управляется прибором (reflevel/range).
+        """
+        self.plotWidget.getPlotItem().getViewBox().setLimits(
+            xMin=RS_FSVA3013.FREQ_MIN_HZ,
+            xMax=RS_FSVA3013.FREQ_MAX_HZ)

@@ -102,16 +102,14 @@ class AccTracesMixin:
     def _acc_kind_changed(self, num: int) -> None:
         """Реакция на смену ТИПА накопления (Максимум/Минимум/Средний).
 
-        При Hold — автоматический перевод трассы в On: пользователь,
-        меняющий тип накопления, явно хочет продолжать копить с новым
-        правилом. setCurrentText триггерит _acc_mode_changed, который
-        и делает сброс буфера. При On — сброс сам: смешивать max/min/aver
-        в одном массиве нельзя.
+        При Hold и Off — автоматический перевод трассы в On: тот, кто
+        меняет тип накопления, хочет видеть результат с новым правилом.
+        setCurrentText триггерит _acc_mode_changed, который и делает
+        сброс буфера. При On — сброс сам: смешивать max/min/aver в
+        одном массиве нельзя.
         """
         mode = self._acc_mode(num)
-        if mode == TRACE_OFF:
-            return
-        if mode == TRACE_HOLD:
+        if mode != TRACE_ON:
             combo_on = getattr(self, f'trc_{num}_on', None)
             if combo_on is not None:
                 combo_on.setCurrentText(TRACE_ON)
@@ -227,12 +225,32 @@ class AccTracesMixin:
     def _update_acc_legend(self) -> None:
         """Пересобрать текст легенды по включённым трассам.
 
-        Каждая строка — 'trc_N: <режим накопления>' цветом кривой
-        трассы (rich text, цвет в span'ах). У замороженной трассы
-        добавляется суффикс '(hold)'. Выключенные (Off) не
-        показываются; если выключены обе — легенда пустая.
+        Первая строка — режим главного графика: коды накопления и
+        детектора из DeviceState в нижнем регистре ('writ, pos').
+        Пока данные не приходили, строка не показывается.
+        Для накопления 'Blank' (BLAN) строка о главном графике отсутствует
+        целиком — трасса скрыта с экрана прибора.
+
+        Каждая строка '<режим накопления>' цветом кривой трассы
+        (rich text, цвет в span'ах). У замороженной трассы добавляется
+        суффикс '(hold)'. Выключенные (Off) не показываются; если
+        выключены обе — остаётся только строка главного графика.
         """
         lines = []
+
+        # --- Строка главного графика ---
+        if self._main_trace_acc != 'BLAN':
+            parts = []
+            if self._main_trace_det:
+                parts.append(self._main_trace_det.lower().capitalize())
+            if self._main_trace_acc:
+                parts.append(self._main_trace_acc.lower().capitalize())
+            if parts:
+                lines.append(
+                    f'<span style="color:{Style.MAIN_TRACE_COLOR};">'
+                    f'{", ".join(parts)}</span>')
+
+        # --- Строки доп. трасс ---
         for num in (1, 2):
             mode = self._acc_mode(num)
             if mode == TRACE_OFF:
@@ -243,7 +261,7 @@ class AccTracesMixin:
             suffix = ' (hold)' if mode == TRACE_HOLD else ''
             lines.append(
                 f'<span style="color:{self.ACC_TRACE_PEN[num]};">'
-                f'trc_{num}: {kind}{suffix}</span>')
+                f'{kind.capitalize()}{suffix}</span>')
 
         ti = self._acc_legend.textItem
         ti.setHtml('<br>'.join(lines))
