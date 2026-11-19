@@ -1,5 +1,5 @@
-from constants import (AMP_UNITS, ANT_NAMES, DETECTORS_FSVA, PREAMP_VAL,
-                       RBW_TYPES_FILTER, TRACE_ACC)
+from constants import (ADD_TRACE, AMP_UNITS, ANT_NAMES, DETECTORS_FSVA,
+                       PREAMP_VAL, RBW_TYPES_FILTER, TRACE_ACC, TRACE_MODES)
 from gui.styles import Style
 
 # ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ АМПЛИТУДОЙ
@@ -282,7 +282,46 @@ SECTION_SWEEP = [
 
 # ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ TRACES
 SECTION_TRACES = [
-
+    {
+        'label': 'Трасса 1:',
+        'widgets': [
+            {
+                'type': 'combo',
+                'key': 'trc_1_acc',         # тип накопления
+                'items': ADD_TRACE,
+                'value': ADD_TRACE[0],      # 'Максимум'
+                'style': Style.COMBO_BOX,
+                'stretch': 1,
+            },
+            {
+                'type': 'combo',
+                'key': 'trc_1_on',          # режим Off/On/Hold
+                'items': TRACE_MODES,       # 'Off' первым — дефолт
+                'style': Style.COMBO_BOX,
+                'stretch': 1,
+            },
+        ]
+    },
+    {
+        'label': 'Трасса 2:',
+        'widgets': [
+            {
+                'type': 'combo',
+                'key': 'trc_2_acc',
+                'items': ADD_TRACE,
+                'value': ADD_TRACE[2],      # 'Средний'
+                'style': Style.COMBO_BOX,
+                'stretch': 1,
+            },
+            {
+                'type': 'combo',
+                'key': 'trc_2_on',
+                'items': TRACE_MODES,
+                'style': Style.COMBO_BOX,
+                'stretch': 1,
+            },
+        ]
+    },
 ]
 
 # ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ MARKERS

@@ -81,6 +81,15 @@ class ControlsMixin:
         self.check_auto_max = self.sec_mrk.widgets['check_auto_max']
         self.but_mrk_to_cf = self.sec_mrk.widgets['but_mrk_to_cf']
 
+        # Дополнительные трассы
+        self.trc_1_acc = self.sec_traces.widgets['trc_1_acc']
+        self.trc_1_on = self.sec_traces.widgets['trc_1_on']
+        self.trc_2_acc = self.sec_traces.widgets['trc_2_acc']
+        self.trc_2_on = self.sec_traces.widgets['trc_2_on']
+
+        # Накопительные трассы (AccTracesMixin): сигналы чекбоксов/комбо
+        self.connect_acc_traces()
+
         self._set_analyzer_controls_enabled(False)
 
     def _send_cmd(self, command: str) -> None:
@@ -128,6 +137,9 @@ class ControlsMixin:
             self.combo_trace_acc,
             self.tb_sweep_count,
             self.radio_count, self.radio_single,
+            # Дополнительные трассы
+            self.trc_1_acc, self.trc_1_on,
+            self.trc_2_acc, self.trc_2_on,
             # управление маркерами
             self.check_auto_max, self.but_mrk_to_cf,
         ]

@@ -5,6 +5,7 @@ from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication, QMainWindow
 
 from function import resource_path
+from gui.mixins.acc_traces_mixin import AccTracesMixin
 from gui.mixins.connection_mixin import ConnectionMixin
 from gui.mixins.controls_mixin import ControlsMixin
 from gui.mixins.panels_mixin import PanelsMixin
@@ -18,6 +19,7 @@ from gui.mixins.waterfall_mixin import WaterfallMixin
 class MainWindow(
     QMainWindow, PanelsMixin, WaterfallMixin, ResultsMixin, PlotMixin,
     StateMixin, ControlsMixin, ConnectionMixin, SignalsMixin,
+    AccTracesMixin,
 ):
     def __init__(self):
         super().__init__()

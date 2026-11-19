@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import QApplication, QWidget
 
 from constants import FREQ_DIM
 from dataclass import DeviceState
-from gui.styles import BORDER_COLOR, FRAME_RADIUS
+from gui.styles import BORDER_COLOR, FRAME_RADIUS, Style
 
 
 class _RoundedBorderOverlay(QWidget):
@@ -71,11 +71,11 @@ class PlotMixin:
         for attr in ('_hgrid_lines', '_vgrid_lines'):
             for line in getattr(self, attr, []):
                 self.plotWidget.removeItem(line)
-        self._curve = self.plotWidget.plot([], [], pen='b')
+        self._curve = self.plotWidget.plot([], [], pen=Style.MAIN_TRACE_COLOR)
 
         # Цвет и стиль линий сетки
         grid_pen = pg.mkPen(
-            color=(120, 120, 120, 80), width=1, style=Qt.PenStyle.SolidLine)
+            color=(120, 120, 120, 40), width=1, style=Qt.PenStyle.SolidLine)
         # --- Горизонтальные линии (пул, позиции задаются в update_state) ---
         self._hgrid_lines = []
         for _ in range(20):
@@ -161,14 +161,11 @@ class PlotMixin:
         self._x_debounce.setInterval(300)  # мс
         self._x_debounce.timeout.connect(self._send_x_range_cmd)
 
-        # Сигнал изменения диапазона
+        # Реакции на мышь над графиком: перетаскивание/колесо меняют
+        # span (вместо кнопок), resize перепривязывает пиксельные метки
         vb = self.plotWidget.getPlotItem().getViewBox()
         vb.sigRangeChanged.connect(self._on_x_range_changed)
-        # Колесо мыши над графиком = изменение span (вместо кнопок)
         vb.sigResized.connect(self._reposition_labels)
-
-        pi = self.plotWidget.getPlotItem()
-        vb = pi.getViewBox()
         pi.hideButtons()            # скрыть кнопку автомасштаба
         vb.setMenuEnabled(False)    # запретить контекстное меню графика
 
@@ -197,6 +194,9 @@ class PlotMixin:
         на местах, меняются только числа под ними. Единица измерения
         выбирается по абсолютному значению центра окна (как на приборе)
         и выводится в названии оси.
+
+        Размерности частот перечислены по убыванию делителя
+        — на этом основан автоподбор размерности
         """
         x_span = x_max - x_min
         if x_span <= 0:
@@ -247,6 +247,18 @@ class PlotMixin:
         self._update_x_grid(x_min, x_max)
         self._update_info_labels(x_min, x_max)
 
+    def _place_errors_label(self) -> None:
+        """Разместить метку ошибок у левой кромки виджета.
+
+        Позиция осознанно привязана не к полотну данных, а к краю
+        всего PlotItem: метка должна висеть под осью Y, левее сетки,
+        даже если поле осей изменит ширину. Поэтому прямоугольник
+        берём у PlotItem, а не у ViewBox (его sceneBoundingRect
+        описывает только область данных — отсюда «под началом сетки»).
+        """
+        rect = self.plotWidget.getPlotItem().sceneBoundingRect()
+        self._errors_label.setPos(rect.left(), rect.bottom())
+
     def _update_info_labels(self, x_min, x_max):
         """Обновить метки CF / Span / цена деления под осью X.
 
@@ -256,19 +268,22 @@ class PlotMixin:
 
         Note:
             Ничего не делает, пока не известен Y-диапазон
-            (self._current_y_min / _current_y_max are None) — метки
-            привязываются к нижней границе по Y.
+            (self._current_y_min / _current_y_max are None).
+
+            Геометрия берётся в координатах сцены (sceneBoundingRect):
+            локальный boundingRect() ViewBox не знает о смещении на
+            ширину осей и поля графика — раньше это компенсировали
+            константами (+50/+20), привязанными к текущей разметке.
         """
         if self._current_y_min is None or self._current_y_max is None:
             return
 
-        # Область графика в пикселях: левая/правая кромки и низ.
-        # Позиции больше не зависят от преобразования вида —
-        # полотно может панорамироваться сколько угодно, метки на месте
+        # Область данных в координатах сцены
         vb = self.plotWidget.getPlotItem().getViewBox()
-        rect = vb.boundingRect()
-        x_px = rect.left() + 50
-        y_px = rect.bottom() + 20
+        rect = vb.sceneBoundingRect()
+
+        x_px = rect.left()
+        y_px = rect.bottom() - 5
 
         center_hz = (x_min + x_max) / 2
         span_hz = x_max - x_min
@@ -288,8 +303,8 @@ class PlotMixin:
             self._rvbw_label.setPos(x_px + 0.65 * rect.width(), y_px)
 
         self._span_label.setText(f'Span = ±{self._format_freq(span_hz/2)}')
-        self._span_label.setPos(rect.right()+50, y_px)
-        self._errors_label.setPos(rect.left() + 2, y_px + 46)
+        self._span_label.setPos(rect.right(), y_px)
+        self._place_errors_label()
 
     def _format_freq(
         self, hz: float, force_decimals: int | None = None, dim: str = ''
@@ -387,6 +402,11 @@ class PlotMixin:
 
                 self._update_x_grid(x_min, x_max)
 
+                # Частотная сетка сменилась — накопление доп. трасс
+                # с прежней сеткой невалидно, сбрасываем
+                if hasattr(self, '_acc_traces'):
+                    self._reset_acc_traces()
+
                 # Метки CF/Span/цена деления привязаны к окну X —
                 # обновляем при любой смене диапазона
                 self._update_info_labels(x_min, x_max)
@@ -461,6 +481,10 @@ class PlotMixin:
         if state.errors is not None:
             self._errors_str = ' '.join(state.errors)
             self._errors_label.setText(self._errors_str)
+
+        # Накопительные трассы (AccTracesMixin)
+        if hasattr(self, '_acc_traces'):
+            self._update_acc_traces(state)
 
         # Параметры (None = не опрашивался в этом кадре)
         self._apply_state_params(state)

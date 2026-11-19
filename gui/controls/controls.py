@@ -89,6 +89,9 @@ class CollapsibleSection(QWidget):
         elif w_type == "combo":
             widget = QComboBox()
             widget.addItems(item.get("items", []))
+            # Значение по умолчанию (текст из списка items), если задано
+            if item.get("value"):
+                widget.setCurrentText(item["value"])
             model = widget.model()
             for i in range(model.rowCount()):
                 item_obj = model.item(i)

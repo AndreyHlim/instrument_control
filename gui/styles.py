@@ -219,3 +219,7 @@ class Style(StrEnum):
         # "padding: 2px 5px; "            # Отступы внутри рамки
         "background-color: #ffffff;"      # Белый фон под текстом
     )
+
+    MAIN_TRACE_COLOR = "#5353fd"    # основной график трассы
+    ACC_TRACE_COLOR_1 = '#d9822b'   # кривая доп. трассы 1
+    ACC_TRACE_COLOR_2 = '#4aa52f'   # кривая доп. трассы 2
