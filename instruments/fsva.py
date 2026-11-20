@@ -696,6 +696,7 @@ class RS_FSVA3013:
             'DBUV_HZ': 'dBµV/Hz',
             'DBMV_HZ': 'dBmV/Hz',
             'DBUV/M': 'dBµV/m',
+            'DBMV/M': 'dBmV/m'
         }
         return val_set[amp_unit_val]
 
@@ -718,7 +719,7 @@ class RS_FSVA3013:
             'dBV': 'DBVP',
             'dBµV/Hz': 'DBUV_HZ',
             'dBmV/Hz': 'DBMV_HZ',
-            'dBmV/m': 'DBUV/M',
+            'dBmV/m': 'DBMV/M',
         }
         if val not in val_set:
             return

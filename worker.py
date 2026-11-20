@@ -131,13 +131,15 @@ class TraceWorker(QObject):
                 affected_params = set()
                 while self._commands:
                     cmd = self._commands.pop(0)
-                    self._execute_command(cmd)
-                    base_cmd = cmd.split(':')[0]
-                    param = self._cmd_to_param.get(base_cmd)
-                    if param:
-                        if isinstance(param, str):
-                            param = (param,)
-                        affected_params.update(param)
+                    try:
+                        self._execute_command(cmd)
+                        base_cmd = cmd.split(':')[0]
+                        param = self._cmd_to_param.get(base_cmd)
+                        if param:
+                            affected_params.update(
+                                (param,) if isinstance(param, str) else param)
+                    except Exception as e:
+                        print(f'[WORKER] команда {cmd}: {e}')
 
                 if affected_params:
                     quick_state = DeviceState()
@@ -355,6 +357,8 @@ class TraceWorker(QObject):
         elif cmd.startswith('set_rbw:'):
             val = float(cmd.split('set_rbw:', 1)[1])
             self._analyzer.set_rbw(val, dim=Dim.Hz)
+        else:
+            print(f'[WORKER] Неизвестная команда: {cmd}')
 
     def send_command(self, command: str):
         """Поставить команду в очередь на выполнение (потокобезопасно).

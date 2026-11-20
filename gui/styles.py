@@ -223,3 +223,5 @@ class Style(StrEnum):
     MAIN_TRACE_COLOR = "#5353fd"    # основной график трассы
     ACC_TRACE_COLOR_1 = '#d9822b'   # кривая доп. трассы 1
     ACC_TRACE_COLOR_2 = '#4aa52f'   # кривая доп. трассы 2
+    MARKER_COLOR_1 = "#b83dc4"   # маркер М1
+    MARKER_COLOR_2 = "#00a0a0"   # маркер М2

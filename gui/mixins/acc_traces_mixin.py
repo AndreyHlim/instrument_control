@@ -1,7 +1,8 @@
 import numpy as np
 import pyqtgraph as pg
 
-from constants import ADD_TRACE_MODE, TRACE_HOLD, TRACE_OFF, TRACE_ON
+from constants import (ADD_TRACE_MODE, MARKER_TRACES, TRACE_HOLD, TRACE_OFF,
+                       TRACE_ON)
 from gui.styles import Style
 
 
@@ -61,7 +62,7 @@ class AccTracesMixin:
         """Структура накопления обеих трасс (создаётся один раз)."""
         if not hasattr(self, '_acc_traces'):
             self._acc_traces = {
-                num: {'curve': None, 'arr': None, 'count': 0}
+                num: {'curve': None, 'arr': None, 'count': 0, 'freqs': None}
                 for num in (1, 2)
             }
         return self._acc_traces
@@ -76,6 +77,7 @@ class AccTracesMixin:
         entry = self._acc_entries()[num]
         entry['arr'] = None
         entry['count'] = 0
+        entry['freqs'] = None
         if entry['curve'] is not None:
             self.plotWidget.removeItem(entry['curve'])
             entry['curve'] = None
@@ -89,15 +91,48 @@ class AccTracesMixin:
 
         Кривую при сбросе не трогаем: до первого нового кадра она
         просто показывает прежние данные, потом перезаписывается.
+
+        Уход в Off также возвращает все маркеры, стоявшие на этой
+        трассе, на основную (trace_idx = 1): трассы больше нет на
+        экране — и маркер, и его частота в легенде должны жить на
+        существующем источнике данных.
         """
         entry = self._acc_entries()[num]
         if self._acc_mode(num) == TRACE_OFF:
             self._acc_clear(num)
+            self._markers_to_main_trace(num)
         elif self._acc_mode(num) == TRACE_ON:
             entry['arr'] = None
             entry['count'] = 0
         # Hold — ничего делать не нужно: накопление заморожено циклом
         self._update_acc_legend()
+
+    def _markers_to_main_trace(self, num: int) -> None:
+        """Вернуть маркеры с выключенной трассы num на основную.
+
+        Вызывается при уходе трассы в Off. Активному маркеру заодно
+        синхронизируется комбобокс (setCurrentText штатно триггерит
+        _on_mrk_trace_changed — тот обновит легенду маркеров); для
+        неактивных достаточно переназначения trace_idx — их легенда
+        пересоберётся следом.
+        """
+        if not hasattr(self, '_marker_entries'):
+            return
+        moved_any = False
+        for entry in self._marker_entries.values():
+            if entry['trace_idx'] == num + 1:
+                entry['trace_idx'] = 1
+                moved_any = True
+        if (
+            moved_any
+            and self._marker_active is not None
+            and self._marker_entries[self._marker_active]['trace_idx'] == 1
+        ):
+            combo = getattr(self, 'combo_mrk_trace', None)
+            if combo is not None:
+                combo.setCurrentText(MARKER_TRACES[0])
+        if hasattr(self, '_update_markers_legend'):
+            self._update_markers_legend()
 
     def _acc_kind_changed(self, num: int) -> None:
         """Реакция на смену ТИПА накопления (Максимум/Минимум/Средний).
@@ -117,6 +152,7 @@ class AccTracesMixin:
             entry = self._acc_entries()[num]
             entry['arr'] = None
             entry['count'] = 0
+            entry['freqs'] = None
         self._update_acc_legend()
 
     def _reset_acc_traces(self) -> None:
@@ -131,6 +167,7 @@ class AccTracesMixin:
                 continue
             entry['arr'] = None
             entry['count'] = 0
+            entry['freqs'] = None
 
     def _update_acc_traces(self, state) -> None:
         """Обновить накопительные трассы по текущему кадру.
@@ -178,17 +215,18 @@ class AccTracesMixin:
                     np.maximum(entry['arr'], levels, out=entry['arr'])
                 elif acc_kind == 'min':
                     np.minimum(entry['arr'], levels, out=entry['arr'])
-                else:   # aver — инкрементное среднее по всем кадрам
+                else:
                     entry['count'] += 1
                     entry['arr'] += (levels - entry['arr']) / entry['count']
+                entry['freqs'] = state.freqs   # сетка этого буфера
+
+                if entry['curve'] is None:
+                    entry['curve'] = self.plotWidget.plot(
+                        [], [],
+                        pen=pg.mkPen(self.ACC_TRACE_PEN[num], width=1))
+                entry['curve'].setData(state.freqs, entry['arr'])
             # TRACE_HOLD: накопление заморожено — кривую не трогаем,
             # она продолжает показывать последнее накопленное
-
-            if entry['curve'] is None:
-                entry['curve'] = self.plotWidget.plot(
-                    [], [], pen=pg.mkPen(self.ACC_TRACE_PEN[num], width=1))
-            if mode == TRACE_ON:
-                entry['curve'].setData(state.freqs, entry['arr'])
 
         self._update_acc_legend()
 

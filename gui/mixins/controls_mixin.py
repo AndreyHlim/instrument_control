@@ -78,8 +78,6 @@ class ControlsMixin:
         self.tb_sweep_count = self.sec_sweep.widgets['tb_sweep_count']
         self.radio_count = self.sec_sweep.widgets['radio_count']
         self.radio_single = self.sec_sweep.widgets['radio_single']
-        self.check_auto_max = self.sec_mrk.widgets['check_auto_max']
-        self.but_mrk_to_cf = self.sec_mrk.widgets['but_mrk_to_cf']
 
         # Дополнительные трассы
         self.trc_1_acc = self.sec_traces.widgets['trc_1_acc']
@@ -140,8 +138,6 @@ class ControlsMixin:
             # Дополнительные трассы
             self.trc_1_acc, self.trc_1_on,
             self.trc_2_acc, self.trc_2_on,
-            # управление маркерами
-            self.check_auto_max, self.but_mrk_to_cf,
         ]
         for w in controls:
             w.setEnabled(enabled)
@@ -198,6 +194,8 @@ class ControlsMixin:
             text: новый текст комбобокса (например, 'дБм', 'В').
         """
         self._send_cmd(f'amp_unit:{text}')
+        self._current_amp_unit = text
+        self._update_markers_legend()
 
     def on_trans_changed(self, text: str) -> None:
         """Сменить калибровочную поправку (трансдьюсер).

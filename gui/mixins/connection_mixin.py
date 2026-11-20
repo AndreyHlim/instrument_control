@@ -73,12 +73,6 @@ class ConnectionMixin:
         self._start_trace_thread()
         self._set_analyzer_conn_state(True)
 
-        # Автослежение за максимумом
-        if not self.check_auto_max.isChecked():
-            self.check_auto_max.setChecked(True)
-        else:
-            self._trace_worker.send_command('auto_max_on')
-
     def _start_trace_thread(self) -> None:
         """Запустить рабочий поток чтения трассы.
 

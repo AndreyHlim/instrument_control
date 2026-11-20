@@ -8,6 +8,7 @@ from function import resource_path
 from gui.mixins.acc_traces_mixin import AccTracesMixin
 from gui.mixins.connection_mixin import ConnectionMixin
 from gui.mixins.controls_mixin import ControlsMixin
+from gui.mixins.markers_mixin import MarkersMixin
 from gui.mixins.panels_mixin import PanelsMixin
 from gui.mixins.plot_mixin import PlotMixin
 from gui.mixins.results_mixin import ResultsMixin
@@ -18,7 +19,7 @@ from gui.mixins.waterfall_mixin import WaterfallMixin
 
 class MainWindow(
     QMainWindow, PanelsMixin, WaterfallMixin, ResultsMixin, PlotMixin,
-    StateMixin, ControlsMixin, ConnectionMixin, SignalsMixin,
+    StateMixin, ControlsMixin, MarkersMixin, ConnectionMixin, SignalsMixin,
     AccTracesMixin,
 ):
     def __init__(self):

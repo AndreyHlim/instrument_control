@@ -56,3 +56,5 @@ ADD_TRACE_MODE = {
 # Hold — заморожена, но отображается (аналог View на анализаторе)
 TRACE_MODES = ('Off', 'On', 'Hold')
 TRACE_OFF, TRACE_ON, TRACE_HOLD = TRACE_MODES
+
+MARKER_TRACES = ['Основная трасса', 'Трасса 1', 'Трасса 2']

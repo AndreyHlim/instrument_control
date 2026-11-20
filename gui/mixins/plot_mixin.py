@@ -157,6 +157,7 @@ class PlotMixin:
         # доп. трасс (кэш: кадр может прийти без опроса этих полей)
         self._main_trace_acc: str | None = None
         self._main_trace_det: str | None = None
+        self._current_amp_unit: str | None = None
 
         # --- Дебаунс для ручного изменения X ---
         self._updating_from_state = False
@@ -172,6 +173,7 @@ class PlotMixin:
         self._apply_x_limits()
         vb.sigRangeChanged.connect(self._on_x_range_changed)
         vb.sigResized.connect(self._reposition_labels)
+        vb.sigResized.connect(self._markers_reposition)
         pi.hideButtons()            # скрыть кнопку автомасштаба
         vb.setMenuEnabled(False)    # запретить контекстное меню графика
 
@@ -252,6 +254,7 @@ class PlotMixin:
 
         self._update_x_grid(x_min, x_max)
         self._update_info_labels(x_min, x_max)
+        self._markers_view_changed(x_min, x_max)
 
     def _place_errors_label(self) -> None:
         """Разместить метку ошибок у левой кромки виджета.
@@ -389,7 +392,10 @@ class PlotMixin:
         """
         # График
         self._curve.setData(state.freqs, state.levels)
+        # Кэш последнего полного кадра — для поиска пика маркерами
         if state.freqs:
+            self._last_freqs = state.freqs
+            self._last_levels = state.levels
             x_min = state.freqs[0]
             x_max = state.freqs[-1]
 
@@ -412,6 +418,7 @@ class PlotMixin:
                 # с прежней сеткой невалидно, сбрасываем
                 if hasattr(self, '_acc_traces'):
                     self._reset_acc_traces()
+                self._markers_view_changed()
 
                 # Метки CF/Span/цена деления привязаны к окну X —
                 # обновляем при любой смене диапазона
@@ -468,6 +475,7 @@ class PlotMixin:
                 ):
                     self._update_info_labels(
                         self._current_x_min, self._current_x_max)
+                    self._markers_reposition()
 
         # --- RBW/VBW для подписи на графике ---
         rvbw_changed = False
@@ -494,13 +502,19 @@ class PlotMixin:
             self._main_trace_acc = state.trace_acc
         if state.det is not None:
             self._main_trace_det = state.det
+        if state.amp_unit is not None:
+            self._current_amp_unit = state.amp_unit
 
         # Накопительные трассы (AccTracesMixin)
         if hasattr(self, '_acc_traces'):
             self._update_acc_traces(state)
 
+        # Автопоиск пика для включённых маркеров
+        if hasattr(self, '_marker_entries'):
+            self._markers_autopeak_step()
         # Параметры (None = не опрашивался в этом кадре)
         self._apply_state_params(state)
+        self._update_markers_legend()
 
     def _update_y_grid(self, y_min: float, y_max: float) -> None:
         """Переставить горизонтальные линии сетки (шаг 10 дБ) и ось Y."""

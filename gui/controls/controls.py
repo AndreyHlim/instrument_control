@@ -103,6 +103,7 @@ class CollapsibleSection(QWidget):
 
         elif w_type == "button":
             widget = QPushButton(item.get("text", ""))
+            widget.setCheckable(bool(item.get("checkable", False)))
             if "style" in item:
                 widget.setStyleSheet(item["style"])
             if "icon" in item and item["icon"]:
@@ -113,6 +114,8 @@ class CollapsibleSection(QWidget):
         elif w_type == "checkbox":
             widget = QCheckBox(item.get("text", ""))
             widget.setChecked(item.get("value", False))
+            if "style" in item:
+                widget.setStyleSheet(item["style"])
 
         elif w_type == "radio":
             widget = QRadioButton(item.get("text", ""))

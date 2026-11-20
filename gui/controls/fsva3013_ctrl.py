@@ -1,5 +1,6 @@
 from constants import (ADD_TRACE, AMP_UNITS, ANT_NAMES, DETECTORS_FSVA,
-                       PREAMP_VAL, RBW_TYPES_FILTER, TRACE_ACC, TRACE_MODES)
+                       MARKER_TRACES, PREAMP_VAL, RBW_TYPES_FILTER, TRACE_ACC,
+                       TRACE_MODES)
 from gui.styles import Style
 
 # ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ АМПЛИТУДОЙ
@@ -326,22 +327,88 @@ SECTION_TRACES = [
 
 # ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ MARKERS
 SECTION_MRK = [
+    # Кнопки М1/М2 — checkable, взаимоисключающие (обработка в MarkersMixin)
     {
-        'label': 'Marker 1',
         'widgets': [
             {
-                'type': 'checkbox',
-                'key': 'check_auto_max',
-                'text': 'Автослежение',
-                'value': False,
-                "stretch": 1,
+                'type': 'button',
+                'key': 'but_mrk_1',
+                'text': 'Маркер 1',
+                'checkable': True,
+                'stretch': 1,
             },
             {
                 'type': 'button',
-                "key": "but_mrk_to_cf",
-                "text": "В центр",
-                "stretch": 1,
-                # "style": Style.VAL_CFSTEP_TO_SPAN,
+                'key': 'but_mrk_2',
+                'text': 'Маркер 2',
+                'checkable': True,
+                'stretch': 1,
+            },
+            {
+                'type': 'combo',
+                'key': 'combo_mrk_trace',
+                'items': MARKER_TRACES,
+                'value': MARKER_TRACES[0],
+                'style': Style.COMBO_BOX,
+                'stretch': 2,
+            },
+        ]
+    },
+    {
+        'widgets': [
+            {
+                'type': 'button',
+                'key': 'but_mrk_peak',
+                'text': 'Peak',
+                'stretch': 1,
+            },
+            {
+                'type': 'button',
+                'key': 'but_mrk_next_peak',
+                'text': 'Next Peak',
+                'stretch': 1,
+            },
+            {
+                'type': 'checkbox',
+                'key': 'chk_mrk_autopeak',
+                'text': 'Auto Peak',
+                'value': False,
+                'stretch': 1,
+            },
+            {
+                'type': 'checkbox',
+                'key': 'chk_mrk_hold',
+                'text': 'hold',
+                'value': False,
+                'stretch': 1,
+            },
+        ]
+    },
+    {
+        'widgets': [
+            {
+                'type': 'button',
+                'key': 'but_mrk_to_center',
+                'text': 'В центр',
+                'stretch': 1,
+            },
+            {
+                'type': 'button',
+                'key': 'but_mrk_delta_center',
+                'text': 'Центр = ∆M',
+                'stretch': 1,
+            },
+            {
+                'type': 'button',
+                'key': 'but_mrk_span_delta',
+                'text': 'Span = ∆M',
+                'stretch': 1,
+            },
+            {
+                'type': 'button',
+                'key': 'but_mrk_all_off',
+                'text': 'All off',
+                'stretch': 1,
             },
         ]
     },

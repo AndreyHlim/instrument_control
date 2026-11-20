@@ -78,6 +78,7 @@ class PanelsMixin:
         """Настроить среднюю панель: графики и сопутствующие элементы."""
         self.settings_results()    # <- от ResultsMixin
         self.settings_plot()       # <- от PlotMixin
+        self.settings_markers()    # <- от MarkersMixin
         self.settings_waterfall()  # <- от WaterfallMixin
 
     def settings_right_panel(self) -> None:
@@ -162,11 +163,6 @@ class PanelsMixin:
             self.but_right_toggle.setArrowType(Qt.ArrowType.LeftArrow)
 
     def _create_method_sections(self) -> None:
-        """Создать секции методов измерений на правой панели.
-
-        Секции стартуют свёрнутыми, как «Амплитуда». Контент каждой
-        добавляется через add_inputs со своей схемой, когда он появится.
-        """
         """Создать секции методов измерений на правой панели.
 
         Секции стартуют свёрнутыми, как «Амплитуда». Контент каждой —
