@@ -239,7 +239,7 @@ class AccTracesMixin:
         используем — его пересчёт не срабатывает после setHtml,
         выравниванием управляет _place_acc_legend.
         """
-        self._acc_legend = pg.TextItem(text='', color="#000000",
+        self._acc_legend = pg.TextItem(text='', color=Style.PLOT_LABEL_COLOR,
                                        anchor=(0, 0))
         self.plotWidget.scene().addItem(self._acc_legend)
         self._place_acc_legend()

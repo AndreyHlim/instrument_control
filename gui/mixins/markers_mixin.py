@@ -8,7 +8,7 @@ from PyQt6.QtGui import (QBrush, QColor, QFont, QFontMetricsF, QPainter,
 from PyQt6.QtWidgets import QGraphicsObject
 
 from constants import MARKER_TRACES, TRACE_OFF, TRACE_ON
-from gui.styles import Style
+from gui.styles import Style, PLOT_LABEL_FONT_FAMILY
 
 
 class MarkerLabelItem(QGraphicsObject):
@@ -22,7 +22,7 @@ class MarkerLabelItem(QGraphicsObject):
     drag_started = pyqtSignal()
     drag_moved = pyqtSignal(float)      # X в координатах данных
 
-    W, H, TIP = 24.0, 22.0, 9.0        # ширина, высота, остриё
+    W, H, TIP = 24.0, 15.0, 9.0        # ширина, высота, остриё
 
     def __init__(self, text: str, color: str, vb):
         super().__init__()
@@ -30,12 +30,12 @@ class MarkerLabelItem(QGraphicsObject):
         self._color = color
         self._vb = vb
         self._drag = False
-        self._font = QFont('Segoe UI')
-        self._font.setPointSizeF(8)
+        self._font = QFont(PLOT_LABEL_FONT_FAMILY)
+        self._font.setPointSizeF(9)
         self._font.setBold(True)
         self.setAcceptedMouseButtons(Qt.MouseButton.LeftButton)
         self.setAcceptHoverEvents(True)
-        self.setZValue(20)               # поверх сетки и трасс
+        self.setZValue(20)      # поверх сетки и трасс
 
     def boundingRect(self) -> QRectF:
         return QRectF(-2, -2, self.W + 4, self.H + self.TIP + 4)
@@ -171,10 +171,10 @@ class MarkersMixin:
         # ширину таблицы по содержимому колонок, и при смене частоты
         # граница колонок плывёт. Здесь граница фиксируется вручную
         # (_update_markers_legend пишет её ширину в _legend_name_w)
-        self._markers_legend_name = pg.TextItem(text='', color="#000000",
-                                                anchor=(0, 0))
-        self._markers_legend_val = pg.TextItem(text='', color="#000000",
-                                               anchor=(0, 0))
+        self._markers_legend_name = pg.TextItem(
+            text='', color=Style.PLOT_LABEL_COLOR, anchor=(0, 0))
+        self._markers_legend_val = pg.TextItem(
+            text='', color=Style.PLOT_LABEL_COLOR, anchor=(0, 0))
         self._legend_name_w = 0.0
         for item in (self._markers_legend_name, self._markers_legend_val):
             item.setVisible(False)
@@ -519,13 +519,12 @@ class MarkersMixin:
             self._trace_worker.send_command(f'set_cf:{freq}')
 
     def _on_delta_to_center(self) -> None:
+        """Центрировать CF на середине между маркерами М1/М2."""
         f1 = self._marker_entries[1]['freq']
         f2 = self._marker_entries[2]['freq']
         if f1 is None or f2 is None or self._trace_worker is None:
             return
-        lo, hi = (f1, f2) if f1 <= f2 else (f2, f1)
-        self._trace_worker.send_command(f'set_freq_start:{lo:.0f}')
-        self._trace_worker.send_command(f'set_freq_stop:{hi:.0f}')
+        self._trace_worker.send_command(f'set_cf:{(f1 + f2) / 2}')
 
     def _on_span_to_delta(self) -> None:
         """Задать обзор по маркерам: старт — меньшая частота,

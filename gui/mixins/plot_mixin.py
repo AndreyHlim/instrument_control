@@ -1,11 +1,14 @@
 import pyqtgraph as pg
 from PyQt6.QtCore import QEvent, QObject, QRectF, Qt, QTimer
-from PyQt6.QtGui import QColor, QFont, QPainter, QPalette, QPen
-from PyQt6.QtWidgets import QApplication, QWidget
+from PyQt6.QtGui import QColor, QFont, QPainter, QPen
+from PyQt6.QtWidgets import QWidget
 
 from constants import FREQ_DIM
 from dataclass import DeviceState
-from gui.styles import BORDER_COLOR, FRAME_RADIUS, Style
+from gui.styles import (BORDER_COLOR, FRAME_RADIUS, PLOT_LABEL_FONT_BOLD,
+                        PLOT_LABEL_FONT_FAMILY, PLOT_LABEL_FONT_SIZE,
+                        PLOT_N_HGRID_LINES, PLOT_N_VGRID_LINES, Style,
+                        plot_grid_pen, plot_background_color)
 from instruments.fsva import RS_FSVA3013
 
 
@@ -56,8 +59,7 @@ class PlotMixin:
             в update_state.
         """
         # Фон полотна
-        self.plotWidget.setBackground(
-            QApplication.instance().palette().color(QPalette.ColorRole.Window))
+        self.plotWidget.setBackground(plot_background_color())
 
         # Защита от дублей при пересоздании
         if hasattr(self, '_curve') and self._curve is not None:
@@ -75,11 +77,10 @@ class PlotMixin:
         self._curve = self.plotWidget.plot([], [], pen=Style.MAIN_TRACE_COLOR)
 
         # Цвет и стиль линий сетки
-        grid_pen = pg.mkPen(
-            color=(120, 120, 120, 40), width=1, style=Qt.PenStyle.SolidLine)
+        grid_pen = plot_grid_pen()
         # --- Горизонтальные линии (пул, позиции задаются в update_state) ---
         self._hgrid_lines = []
-        for _ in range(20):
+        for _ in range(PLOT_N_HGRID_LINES):
             line = pg.InfiniteLine(angle=0, movable=False, pen=grid_pen)
             line.setVisible(False)
             self.plotWidget.addItem(line)
@@ -88,24 +89,25 @@ class PlotMixin:
         # --- Вертикальные линии (позиции зададим в update_state) ---
         # Линии сетки
         self._vgrid_lines = []
-        for i in range(9):
+        for i in range(PLOT_N_VGRID_LINES):
             line = pg.InfiniteLine(angle=90, movable=False, pen=grid_pen)
             self.plotWidget.addItem(line)
             self._vgrid_lines.append(line)
 
         # --- Текстовые метки CF / Span / цена деления ПОД осью X ---
-        self._cf_label = pg.TextItem(text='', color="#000000", anchor=(0, 1))
-        self._span_label = pg.TextItem(text='', color="#000000", anchor=(1, 1))
+        self._cf_label = pg.TextItem(
+            text='', color=Style.PLOT_LABEL_COLOR, anchor=(0, 1))
+        self._span_label = pg.TextItem(
+            text='', color=Style.PLOT_LABEL_COLOR, anchor=(1, 1))
         self._perdiv_label = pg.TextItem(
-            text='', color="#000000", anchor=(0.5, 1))
+            text='', color=Style.PLOT_LABEL_COLOR, anchor=(0.5, 1))
         self._rvbw_label = pg.TextItem(
-            text='', color="#000000", anchor=(0.5, 1))
-        # Ошибки индикации дисплея (UNCAL, OVLD, ...) — левый нижний угол
-        self._errors_label = pg.TextItem(text='', color="#ff0000",
-                                         anchor=(0, 1))
-        font = QFont('Segoe UI')
-        font.setPointSizeF(10)
-        font.setBold(True)
+            text='', color=Style.PLOT_LABEL_COLOR, anchor=(0.5, 1))
+        self._errors_label = pg.TextItem(
+            text='', color=Style.PLOT_ERRORS_LABEL_COLOR, anchor=(0, 1))
+        font = QFont(PLOT_LABEL_FONT_FAMILY)
+        font.setPointSizeF(PLOT_LABEL_FONT_SIZE)
+        font.setBold(PLOT_LABEL_FONT_BOLD)
         self._errors_label.textItem.setFont(font)
 
         # Метки добавляем прямо в сцену: их позиция задаётся в ПИКСЕЛЯХ
