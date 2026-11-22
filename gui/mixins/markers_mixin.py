@@ -8,7 +8,7 @@ from PyQt6.QtGui import (QBrush, QColor, QFont, QFontMetricsF, QPainter,
 from PyQt6.QtWidgets import QGraphicsObject
 
 from constants import MARKER_TRACES, TRACE_OFF, TRACE_ON
-from gui.styles import Style, PLOT_LABEL_FONT_FAMILY
+from gui.styles import PLOT_LABEL_FONT_FAMILY, Style
 
 
 class MarkerLabelItem(QGraphicsObject):

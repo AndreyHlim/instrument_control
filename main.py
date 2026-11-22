@@ -10,6 +10,7 @@ from gui.mixins.connection_mixin import ConnectionMixin
 from gui.mixins.controls_mixin import ControlsMixin
 from gui.mixins.markers_mixin import MarkersMixin
 from gui.mixins.panels_mixin import PanelsMixin
+from gui.mixins.plot_actions_mixin import PlotActionsMixin
 from gui.mixins.plot_mixin import PlotMixin
 from gui.mixins.results_mixin import ResultsMixin
 from gui.mixins.signals_mixin import SignalsMixin
@@ -19,8 +20,8 @@ from gui.mixins.waterfall_mixin import WaterfallMixin
 
 class MainWindow(
     QMainWindow, PanelsMixin, WaterfallMixin, ResultsMixin, PlotMixin,
-    StateMixin, ControlsMixin, MarkersMixin, ConnectionMixin, SignalsMixin,
-    AccTracesMixin,
+    PlotActionsMixin, StateMixin, ControlsMixin, MarkersMixin,
+    ConnectionMixin, SignalsMixin, AccTracesMixin,
 ):
     def __init__(self):
         super().__init__()

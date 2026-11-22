@@ -16,6 +16,13 @@ BORDER_CTRL_COLOR = '#ababab'
 CTRL_HOVER_BG = '#e6e6e6'
 CTRL_PRESSED_BG = '#d0d0d0'
 
+PLOT_BTN_SIZE = 28        # квадрат кнопки панели действий, px
+PLOT_BTN_ICON_SIZE = 20
+PLOT_BTN_GAP = 4          # зазор кнопка↔рамка графика, px
+PLOT_ACTIONS_STRIP_W = PLOT_BTN_SIZE + 2 * PLOT_BTN_GAP
+COL_TOP = 24
+COL_SPACING = 2
+
 _ARROW = resource_path("gui/icons/combo_arrow.svg").replace("\\", "/")
 
 # Для настройки основного графика
@@ -242,6 +249,24 @@ class Style(StrEnum):
     BUT_SPAN_TO_STEPCF = VAL_CFSTEP_TO_SPAN.replace(
         "min-width: 45px;max-width: 45px;",
         "min-width: 66px;max-width: 66px;"
+    )
+
+    # Квадратные кнопки только с иконкой (панель справа от графика)
+    BUT_ICON = (
+        "QToolButton {"
+        "background-color: transparent;"
+        f"border: 1px solid {BORDER_CTRL_COLOR};"
+        "border-radius: 1px;"
+        "padding: 0px;"
+        "}"
+        "QToolButton:hover { background-color: #e6e6e6; }"
+        "QToolButton:pressed { background-color: #d0d0d0; }"
+        "QToolButton:checked { background-color: #d0d0d0; }"
+        "QToolButton:disabled {"
+        f"color: {DISABLED_FG};"
+        f"background-color: {DISABLED_BG};"
+        "border-color: #bbbbbb;"
+        "}"
     )
 
     # Все QDoubleSpinBox

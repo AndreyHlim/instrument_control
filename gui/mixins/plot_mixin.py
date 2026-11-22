@@ -5,10 +5,11 @@ from PyQt6.QtWidgets import QWidget
 
 from constants import FREQ_DIM
 from dataclass import DeviceState
-from gui.styles import (BORDER_COLOR, FRAME_RADIUS, PLOT_LABEL_FONT_BOLD,
-                        PLOT_LABEL_FONT_FAMILY, PLOT_LABEL_FONT_SIZE,
-                        PLOT_N_HGRID_LINES, PLOT_N_VGRID_LINES, Style,
-                        plot_grid_pen, plot_background_color)
+from gui.styles import (BORDER_COLOR, FRAME_RADIUS, PLOT_ACTIONS_STRIP_W,
+                        PLOT_LABEL_FONT_BOLD, PLOT_LABEL_FONT_FAMILY,
+                        PLOT_LABEL_FONT_SIZE, PLOT_N_HGRID_LINES,
+                        PLOT_N_VGRID_LINES, Style, plot_background_color,
+                        plot_grid_pen)
 from instruments.fsva import RS_FSVA3013
 
 
@@ -128,7 +129,7 @@ class PlotMixin:
         # Границы полотна: оси top/right показываем пустыми —
         # от них остаётся только линия (засечки и подписи заглушены)
         pi = self.plotWidget.getPlotItem()
-        pi.layout.setContentsMargins(0, 25, 25, 5)  # лево, верх, право, низ
+        pi.layout.setContentsMargins(0, 25, PLOT_ACTIONS_STRIP_W, 5)
         pi.showAxis('top')
         pi.showAxis('right')
         for side in ('top', 'right'):
@@ -565,9 +566,12 @@ class PlotMixin:
         self._update_info_labels(self._current_x_min, self._current_x_max)
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
-        """Накладка-рамка следует за геометрией графика."""
+        """Накладка-рамка и колонка кнопок следуют за геометрией графика."""
         if watched is self.plotWidget and event.type() == QEvent.Type.Resize:
             self._frame_overlay.setGeometry(self.plotWidget.rect())
+            placer = getattr(self, '_place_plot_actions_col', None)
+            if placer is not None:
+                placer()
         parent_filter = getattr(super(), 'eventFilter', None)
         if parent_filter is not None:
             return parent_filter(watched, event)

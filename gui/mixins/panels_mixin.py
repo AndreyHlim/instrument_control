@@ -78,6 +78,7 @@ class PanelsMixin:
         """Настроить среднюю панель: графики и сопутствующие элементы."""
         self.settings_results()    # <- от ResultsMixin
         self.settings_plot()       # <- от PlotMixin
+        self.settings_plot_actions()
         self.settings_markers()    # <- от MarkersMixin
         self.settings_waterfall()  # <- от WaterfallMixin
 
