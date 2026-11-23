@@ -2,7 +2,7 @@ import json
 
 import numpy as np
 from PyQt6.QtCore import QSize, Qt, QTimer
-from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import (QFileDialog, QMessageBox, QToolButton,
                              QVBoxLayout, QWidget)
 
@@ -40,6 +40,7 @@ class PlotActionsMixin:
         lay = QVBoxLayout(col)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(COL_SPACING)
+        self._paused = False
 
         self._plot_action_btns = {}
         for name, icon_file, tip in self.ACTIONS:
@@ -52,6 +53,7 @@ class PlotActionsMixin:
             btn.setIconSize(QSize(PLOT_BTN_ICON_SIZE, PLOT_BTN_ICON_SIZE))
             if name == 'but_pausa':
                 btn.setCheckable(True)
+                btn.setIcon(self._pausa_icon())
                 btn.toggled.connect(self._on_pausa_toggled)
             else:
                 btn.clicked.connect(getattr(self, f'_{name}_clicked'))
@@ -63,6 +65,45 @@ class PlotActionsMixin:
         col.raise_()
         self._plot_actions_col = col
         QTimer.singleShot(0, self._place_plot_actions_col)
+
+    def _pausa_icon(self) -> QIcon:
+        """Иконка паузы: Off — pausa.png, On (нажата) — play.png."""
+        icon = QIcon()
+        icon.addPixmap(QPixmap(resource_path('gui/icons/pausa.png')),
+                       QIcon.Mode.Normal, QIcon.State.Off)
+        icon.addPixmap(QPixmap(resource_path('gui/icons/play.png')),
+                       QIcon.Mode.Normal, QIcon.State.On)
+        return icon
+
+    def _on_pausa_toggled(self, checked: bool) -> None:
+        """Переключение паузы кнопкой."""
+        self._paused = checked
+
+    def _set_paused(self, paused: bool) -> None:
+        """Установить паузу, синхронизировав кнопку без рекурсии."""
+        if self._paused == paused:
+            return
+        self._paused = paused
+        btn = self._plot_action_btns.get('but_pausa')
+        if btn is not None:
+            btn.blockSignals(True)   # setChecked вызовет toggled — глушим
+            btn.setChecked(paused)
+            btn.blockSignals(False)
+
+    def _ensure_unpaused(self) -> None:
+        """Снять паузу при действии, влияющем на отображение."""
+        self._set_paused(False)
+
+    def _user_send(self, cmd: str) -> None:
+        """Команда прибора, влияющая на отображение: сначала снять паузу.
+
+        Пауза — только GUI: прибору ничего не запрещается, но любое
+        пользовательское изменение параметров экрана её сбрасывает,
+        иначе изменённое значение будет «заморожено» до снятия паузы.
+        """
+        self._ensure_unpaused()
+        if self._trace_worker is not None:
+            self._trace_worker.send_command(cmd)
 
     def _place_plot_actions_col(self) -> None:
         """Уложить колонку в пустую полосу правого поля осей.
@@ -360,14 +401,6 @@ class PlotActionsMixin:
     def _but_open_screen_data_clicked(self) -> None:
         """Заглушка: открытие сохранённых данных экрана."""
         print('[PLOT ACTIONS] open screen data')
-        QMessageBox.information(
-            self, 'Открыть данные скриншота',
-            'В разработке...'
-        )
-
-    def _on_pausa_toggled(self, checked: bool) -> None:
-        """Заглушка: пауза обновления графика."""
-        print(f'[PLOT ACTIONS] pausa: {"on" if checked else "off"}')
         QMessageBox.information(
             self, 'Открыть данные скриншота',
             'В разработке...'

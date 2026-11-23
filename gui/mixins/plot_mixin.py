@@ -250,6 +250,8 @@ class PlotMixin:
         """Срабатывает при перетаскивании/зуме оси X мышкой."""
         if self._updating_from_state:
             return
+        if getattr(self, '_paused', False):
+            self._ensure_unpaused()
         x_range = ranges[0]
         x_min, x_max = x_range[0], x_range[1]
         self._pending_x_range = (x_min, x_max)
@@ -375,8 +377,8 @@ class PlotMixin:
             return
 
         # Отправляем в Гц — прибору так удобнее
-        self._trace_worker.send_command(f'set_cf:{new_center}')
-        self._trace_worker.send_command(f'set_span:{new_span}')
+        self._user_send(f'set_cf:{new_center}')
+        self._user_send(f'set_span:{new_span}')
 
     def update_state(self, state: DeviceState):
         """Применить снимок состояния прибора к графику и контролам.
@@ -393,6 +395,10 @@ class PlotMixin:
             state: снимок состояния из TraceWorker.state_ready. Поля со
                 значением None не опрашивались в этом кадре и пропускаются.
         """
+
+        if getattr(self, '_paused', False):
+            return
+
         # График
         self._curve.setData(state.freqs, state.levels)
         # Кэш последнего полного кадра — для поиска пика маркерами

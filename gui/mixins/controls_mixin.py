@@ -100,11 +100,12 @@ class ControlsMixin:
 
         Note:
             При неподключённом приборе (worker is None) команда
-            молча игнорируется. Побочный эффект: помечает
+            молча игнорируется. Побочные эффекты: снимает паузу
+            (PlotActionsMixin._user_send), помечает
             self._marker_centered = True.
         """
         if self._trace_worker is not None:
-            self._trace_worker.send_command(command)
+            self._user_send(command)
             self._marker_centered = True
 
     def _set_analyzer_controls_enabled(self, enabled: bool) -> None:

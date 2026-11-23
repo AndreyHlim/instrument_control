@@ -515,27 +515,25 @@ class MarkersMixin:
         if num is None:
             return
         freq = self._marker_entries[num]['freq']
-        if freq is not None and self._trace_worker is not None:
-            self._trace_worker.send_command(f'set_cf:{freq}')
+        if freq is not None:
+            self._send_cmd(f'set_cf:{freq}')
 
     def _on_delta_to_center(self) -> None:
         """Центрировать CF на середине между маркерами М1/М2."""
         f1 = self._marker_entries[1]['freq']
         f2 = self._marker_entries[2]['freq']
-        if f1 is None or f2 is None or self._trace_worker is None:
-            return
-        self._trace_worker.send_command(f'set_cf:{(f1 + f2) / 2}')
+        if f1 is not None and f2 is not None:
+            self._send_cmd(f'set_cf:{(f1 + f2) / 2}')
 
     def _on_span_to_delta(self) -> None:
         """Задать обзор по маркерам: старт — меньшая частота,
         стоп — большая из частот М1/М2."""
         f1 = self._marker_entries[1]['freq']
         f2 = self._marker_entries[2]['freq']
-        if f1 is None or f2 is None or self._trace_worker is None:
-            return
-        lo, hi = (f1, f2) if f1 <= f2 else (f2, f1)
-        self._trace_worker.send_command(f'set_freq_start:{lo:.0f}')
-        self._trace_worker.send_command(f'set_freq_stop:{hi:.0f}')
+        if f1 is not None and f2 is not None:
+            lo, hi = (f1, f2) if f1 <= f2 else (f2, f1)
+            self._send_cmd(f'set_freq_start:{lo:.0f}')
+            self._send_cmd(f'set_freq_stop:{hi:.0f}')
 
     def _on_all_off(self) -> None:
         for num in (1, 2):
