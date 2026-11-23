@@ -483,10 +483,12 @@ class PlotMixin:
         # --- RBW/VBW для подписи на графике ---
         rvbw_changed = False
         if state.rbw is not None:
-            self._rbw_str = self._format_freq(state.rbw * 1e3)
+            self._rbw_hz = state.rbw * 1e3     # Гц — сырые, для экспорта
+            self._rbw_str = self._format_freq(self._rbw_hz)
             rvbw_changed = True
         if state.vbw is not None:
-            self._vbw_str = self._format_freq(state.vbw * 1e3)
+            self._vbw_hz = state.vbw * 1e3
+            self._vbw_str = self._format_freq(self._vbw_hz)
             rvbw_changed = True
         if rvbw_changed and (
             self._current_x_min is not None

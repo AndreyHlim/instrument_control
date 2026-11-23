@@ -725,7 +725,7 @@ class MarkersMixin:
             f1 = self._marker_entries[1]['freq']
             f2 = self._marker_entries[2]['freq']
             if f1 is not None and f2 is not None:
-                lines_name.append(f'∆M = {self._format_freq(abs(f1 - f2))}')
+                lines_name.append(f'∆Mrk = {self._format_freq(abs(f1 - f2))}')
                 lines_val.append('')
 
         name_it.textItem.setHtml('<br>'.join(lines_name))
