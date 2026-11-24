@@ -269,6 +269,27 @@ class Style(StrEnum):
         "}"
     )
 
+    CHECKBOX = (
+        "QCheckBox {"
+        f"color: {CTRL_ENABLE_TEXT};"
+        "background-color: transparent;"
+        "border: none;"
+        "padding: 0px 0px 0px 4px;"
+        "min-height: 20px; max-height: 20px;"
+        "min-width: 18px; max-width: 18px;"
+        f"font-family: '{PLOT_LABEL_FONT_FAMILY}';"
+        f"font-size: {FONT_SIZE_CTRL}pt;"
+        "}"
+        # "QCheckBox:hover { background-color: #e6e6e6; }"
+        "QCheckBox:pressed { background-color: #d0d0d0; }"
+        "QCheckBox:disabled {"
+        f"color: {DISABLED_FG};"
+        f"background-color: {DISABLED_BG};"
+        "}"
+        # "QCheckBox::indicator { width: 16px; height: 16px; }"
+        # "QCheckBox::indicator:checked { background-color: #d0d0d0; }"
+    )
+
     # Все QDoubleSpinBox
     SPIN_BOX = (
         "qproperty-alignment:"

@@ -22,6 +22,7 @@ class SignalsMixin:
             (self.sec_freq, 'freq'),
             (self.sec_rbw, 'rbw'),
             (self.sec_sweep, 'sweep'),
+            (self.sec_traces, 'traces'),
         ):
             map_ = (callbacks_map_conn(self) if ctrl == 'connect'
                     else callbacks_map_fsva(self, ctrl))

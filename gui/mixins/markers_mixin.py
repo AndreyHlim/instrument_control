@@ -689,11 +689,13 @@ class MarkersMixin:
                 else self.ACC_TRACE_PEN[trace_idx - 1]
             segs = []
             last_color = None
-            amp = self._amp_at_freq(freq, getattr(self, '_last_levels', None))
-            if amp is not None:
-                segs.append(self._legend_value_html(
-                    amp, Style.MAIN_TRACE_COLOR))
-                last_color = Style.MAIN_TRACE_COLOR
+            if getattr(self, '_main_visible', True):
+                amp = self._amp_at_freq(
+                    freq, getattr(self, '_last_levels', None))
+                if amp is not None:
+                    segs.append(self._legend_value_html(
+                        amp, Style.MAIN_TRACE_COLOR))
+                    last_color = Style.MAIN_TRACE_COLOR
             if on1:
                 amp1 = self._amp_at_freq(freq, arr1, fr1)
                 if amp1 is not None:

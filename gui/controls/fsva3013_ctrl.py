@@ -237,20 +237,6 @@ SECTION_RBW = [
 # ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ SWEEP
 SECTION_SWEEP = [
     {
-        "type": "combo",
-        "label": "Детектор",
-        "key": "combo_det",
-        "items": DETECTORS_FSVA.keys(),
-        'style': Style.COMBO_BOX,
-    },
-    {
-        "type": "combo",
-        "label": "Накопление",
-        "key": "combo_trace_acc",
-        "items": TRACE_ACC.keys(),
-        'style': Style.COMBO_BOX,
-    },
-    {
         'label': 'Режим Sweep',
         'widgets': [
             {
@@ -284,6 +270,35 @@ SECTION_SWEEP = [
 # ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ TRACES
 SECTION_TRACES = [
     {
+        'label': 'Основная:',
+        'widgets': [
+            {
+                "type": "combo",
+                "label": "Детектор",
+                "key": "combo_det",
+                "items": DETECTORS_FSVA.keys(),
+                'style': Style.COMBO_BOX,
+                'stretch': 1,
+            },
+            {
+                "type": "combo",
+                "label": "Накопление",
+                "key": "combo_trace_acc",
+                "items": list(TRACE_ACC.keys())[:4],
+                'style': Style.COMBO_BOX,
+                'stretch': 1,
+            },
+            {
+                'type': 'checkbox',
+                'key': 'chk_main_visible',
+                'text': '',
+                'value': True,          # True по умолчанию — трасса видна
+                'stretch': 1,
+                'style': Style.CHECKBOX,
+            },
+        ]
+    },
+    {
         'label': 'Трасса 1:',
         'widgets': [
             {
@@ -300,6 +315,13 @@ SECTION_TRACES = [
                 'items': TRACE_MODES,       # 'Off' первым — дефолт
                 'style': Style.COMBO_BOX,
                 'stretch': 1,
+            },
+            {
+                'type': 'button',
+                'key': 'but_refresh_trc_1',
+                "icon": "gui/icons/refresh.png",
+                'stretch': 0,
+                'style': Style.BUT_SQUARE,
             },
         ]
     },
@@ -320,6 +342,13 @@ SECTION_TRACES = [
                 'items': TRACE_MODES,
                 'style': Style.COMBO_BOX,
                 'stretch': 1,
+            },
+            {
+                'type': 'button',
+                'key': 'but_refresh_trc_2',
+                "icon": "gui/icons/refresh.png",
+                'stretch': 0,
+                'style': Style.BUT_SQUARE,
             },
         ]
     },

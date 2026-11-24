@@ -80,10 +80,19 @@ def callbacks_map_fsva(form: QMainWindow, ctrl: str):
             },
             'vbw_auto': form.on_vbw_auto_toggled,
         },
+
+        # --- SWEEP ---
         'sweep': {
-            'combo_det': form.on_det_changed,
-            'combo_trace_acc': form.on_trace_acc_changed,
             'radio_count': form.on_sweep_mode_changed,
             'tb_sweep_count': form.on_sweep_count_changed,
+        },
+
+        # --- TRACES ---
+        'traces': {
+            'combo_det': form.on_det_changed,
+            'combo_trace_acc': form.on_trace_acc_changed,
+            'chk_main_visible': form.on_main_visible_changed,
+            'but_refresh_trc_1': partial(form.refresh_acc_trace, 1),
+            'but_refresh_trc_2': partial(form.refresh_acc_trace, 2),
         },
     }[ctrl]

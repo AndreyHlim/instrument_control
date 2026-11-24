@@ -97,13 +97,11 @@ class AccTracesMixin:
         экране — и маркер, и его частота в легенде должны жить на
         существующем источнике данных.
         """
-        entry = self._acc_entries()[num]
         if self._acc_mode(num) == TRACE_OFF:
             self._acc_clear(num)
             self._markers_to_main_trace(num)
         elif self._acc_mode(num) == TRACE_ON:
-            entry['arr'] = None
-            entry['count'] = 0
+            self._acc_reset(num)
         # Hold — ничего делать не нужно: накопление заморожено циклом
         self._update_acc_legend()
 
@@ -149,10 +147,7 @@ class AccTracesMixin:
             if combo_on is not None:
                 combo_on.setCurrentText(TRACE_ON)
         else:   # On — буфер сбрасываем, кривую не трогаем
-            entry = self._acc_entries()[num]
-            entry['arr'] = None
-            entry['count'] = 0
-            entry['freqs'] = None
+            self._acc_reset(num)
         self._update_acc_legend()
 
     def _reset_acc_traces(self) -> None:
@@ -165,9 +160,7 @@ class AccTracesMixin:
         for num, entry in self._acc_entries().items():
             if self._acc_mode(num) == TRACE_HOLD:
                 continue
-            entry['arr'] = None
-            entry['count'] = 0
-            entry['freqs'] = None
+            self._acc_reset(num)
 
     def _update_acc_traces(self, state) -> None:
         """Обновить накопительные трассы по текущему кадру.
@@ -277,7 +270,7 @@ class AccTracesMixin:
         lines = []
 
         # --- Строка главного графика ---
-        if self._main_trace_acc != 'BLAN':
+        if self._main_visible and self._main_trace_acc != 'BLAN':
             parts = []
             if self._main_trace_det:
                 parts.append(self._main_trace_det.lower().capitalize())
@@ -320,3 +313,35 @@ class AccTracesMixin:
             entry['curve'] = self.plotWidget.plot(
                 [], [], pen=pg.mkPen(self.ACC_TRACE_PEN[num], width=1))
         entry['curve'].setData(freqs, entry['arr'])
+
+    def _acc_reset(self, num: int) -> None:
+        """Сбросить буфер трассы num, не трогая кривую и режим.
+
+        Кривая продолжает показывать прежние данные до первого нового
+        кадра — так ведут себя и существующие пути сброса.
+        """
+        entry = self._acc_entries()[num]
+        entry['arr'] = None
+        entry['count'] = 0
+        entry['freqs'] = None
+
+    def refresh_acc_trace(self, num: int) -> None:
+        """Принудительный сброс накопления трассы num (кнопка «обновить»).
+
+        On — буфер очищается, накопление начинается заново со следующего
+        кадра. Hold — трасса автоматически переводится в On: setCurrentText
+        триггерит _acc_mode_changed, который и делает сброс (Hold —
+        фиксация результата, не пауза). Off — ничего не делает.
+        """
+        mode = self._acc_mode(num)
+        if mode == TRACE_OFF:
+            return
+        # «освежить» имеет смысл только на живом экране
+        self._ensure_unpaused()
+        if mode == TRACE_HOLD:
+            combo = getattr(self, f'trc_{num}_on', None)
+            if combo is not None:
+                # сигнальный путь: сброс внутри
+                combo.setCurrentText(TRACE_ON)
+        else:
+            self._acc_reset(num)

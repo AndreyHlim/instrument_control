@@ -73,17 +73,20 @@ class ControlsMixin:
         self.label_preamp = self.sec_ampl.widgets['label_preamp']
 
         # SWEEP
-        self.combo_det = self.sec_sweep.widgets['combo_det']
-        self.combo_trace_acc = self.sec_sweep.widgets['combo_trace_acc']
         self.tb_sweep_count = self.sec_sweep.widgets['tb_sweep_count']
         self.radio_count = self.sec_sweep.widgets['radio_count']
         self.radio_single = self.sec_sweep.widgets['radio_single']
 
-        # Дополнительные трассы
+        # Трассы
+        self.combo_det = self.sec_traces.widgets['combo_det']
+        self.combo_trace_acc = self.sec_traces.widgets['combo_trace_acc']
+        self.chk_main_visible = self.sec_traces.widgets['chk_main_visible']
         self.trc_1_acc = self.sec_traces.widgets['trc_1_acc']
         self.trc_1_on = self.sec_traces.widgets['trc_1_on']
+        self.but_refresh_trc_1 = self.sec_traces.widgets['but_refresh_trc_1']
         self.trc_2_acc = self.sec_traces.widgets['trc_2_acc']
         self.trc_2_on = self.sec_traces.widgets['trc_2_on']
+        self.but_refresh_trc_2 = self.sec_traces.widgets['but_refresh_trc_2']
 
         # Накопительные трассы (AccTracesMixin): сигналы чекбоксов/комбо
         self.connect_acc_traces()
@@ -132,13 +135,14 @@ class ControlsMixin:
             self.combo_preamp, self.label_atten, self.lbl_range,
             self.transducer, self.atten_auto, self.label_preamp,
             # управление sweep
-            self.combo_det,
-            self.combo_trace_acc,
             self.tb_sweep_count,
             self.radio_count, self.radio_single,
-            # Дополнительные трассы
-            self.trc_1_acc, self.trc_1_on,
-            self.trc_2_acc, self.trc_2_on,
+            # Трассы
+            self.combo_det, self.combo_trace_acc,
+            # chk_main_visible сознательно не блокируем: видимость —
+            # чисто GUI-операция, работает и без прибора
+            self.trc_1_acc, self.trc_1_on, self.but_refresh_trc_1,
+            self.trc_2_acc, self.trc_2_on, self.but_refresh_trc_2,
         ]
         for w in controls:
             w.setEnabled(enabled)

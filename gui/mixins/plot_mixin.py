@@ -59,6 +59,9 @@ class PlotMixin:
             сетки при этом НЕ пересоздаются — позиции задаются позже
             в update_state.
         """
+        # Видимость основной трассы — чисто GUI, прибору ничего не шлём
+        self._main_visible: bool = True
+
         # Фон полотна
         self.plotWidget.setBackground(plot_background_color())
 
@@ -597,3 +600,17 @@ class PlotMixin:
         self.plotWidget.getPlotItem().getViewBox().setLimits(
             xMin=RS_FSVA3013.FREQ_MIN_HZ,
             xMax=RS_FSVA3013.FREQ_MAX_HZ)
+
+    def on_main_visible_changed(self, visible: bool) -> None:
+        """Скрыть/показать основную трассу на графике (чекбокс is_visible).
+
+        Только отображение: кэш кадра (_last_freqs/_last_levels),
+        накопление прибора и водопад продолжают работать как раньше —
+        маркеры и экспорт видят данные даже при скрытой кривой.
+        Прибору команда не отправляется.
+        """
+        self._main_visible = visible
+        if self._curve is not None:
+            self._curve.setVisible(visible)
+        self._update_acc_legend()
+        self._update_markers_legend()
