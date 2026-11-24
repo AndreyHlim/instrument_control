@@ -16,12 +16,13 @@ from gui.mixins.results_mixin import ResultsMixin
 from gui.mixins.signals_mixin import SignalsMixin
 from gui.mixins.state_mixin import StateMixin
 from gui.mixins.waterfall_mixin import WaterfallMixin
+from gui.mixins.workdir_mixin import WorkDirMixin
 
 
 class MainWindow(
     QMainWindow, PanelsMixin, WaterfallMixin, ResultsMixin, PlotMixin,
     PlotActionsMixin, StateMixin, ControlsMixin, MarkersMixin,
-    ConnectionMixin, SignalsMixin, AccTracesMixin,
+    ConnectionMixin, SignalsMixin, AccTracesMixin, WorkDirMixin,
 ):
     def __init__(self):
         super().__init__()
@@ -29,6 +30,7 @@ class MainWindow(
         self.setWindowIcon(QIcon(resource_path('gui/icon.ico')))
         uic.loadUi(ui_path, self)
 
+        self.preparation_workdir()
         self.settings_panels()
         self.preparation_variables()
         self.initialization_form_elements_connect()

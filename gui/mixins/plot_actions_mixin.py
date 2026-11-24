@@ -1,4 +1,5 @@
 import json
+import os
 
 import numpy as np
 from PyQt6.QtCore import QSize, Qt, QTimer
@@ -130,12 +131,14 @@ class PlotActionsMixin:
     def _but_screen_clicked(self) -> None:
         """Диалог сохранения графика в PNG."""
         path, _ = QFileDialog.getSaveFileName(
-            self, 'Сохранить график', 'trace', 'PNG (*.png)')
+            self, 'Сохранить график',
+            os.path.join(self.work_dir(), 'trace'), 'PNG (*.png)')
         if not path:
             return
         if not path.lower().endswith('.png'):
             path += '.png'
         self.plotWidget.grab().save(path)
+        self._adopt_dialog_dir(path)
 
     def _collect_export_data(self) -> dict:
         """Собрать снимок кадра для экспорта: параметры + данные трасс.
@@ -206,7 +209,8 @@ class PlotActionsMixin:
         """Диалог экспорта кадра: TXT или JSON — по выбранному фильтру."""
         d = self._collect_export_data()
         path, flt = QFileDialog.getSaveFileName(
-            self, 'Экспорт данных', 'trace',
+            self, 'Экспорт данных',
+            os.path.join(self.work_dir(), 'trace'),
             'Текст с разделителями (*.txt);;JSON (*.json)')
         if not path:
             return
@@ -401,7 +405,8 @@ class PlotActionsMixin:
     def _but_open_screen_data_clicked(self) -> None:
         """Диалог загрузки снимка экрана из JSON."""
         path, _ = QFileDialog.getOpenFileName(
-            self, 'Открыть данные экрана', '', 'JSON (*.json)')
+            self, 'Открыть данные экрана',
+            self.work_dir(), 'JSON (*.json)')
         if not path:
             return
         try:
@@ -418,6 +423,18 @@ class PlotActionsMixin:
                 f'Файл не читается как снимок экрана:\n{exc}')
             return
         self._apply_screen_data(payload)
+
+    def _adopt_dialog_dir(self, path: str) -> None:
+        """Рабочая директория следует за местом последнего сохранения.
+
+        Решение в пользу «следует»: измерения обычно складываются в
+        один каталог сессии, и повторные сохранения без блуждания по
+        диску ценнее строгой привязки к кнопке. Если захотите строгую —
+        удалите вызовы _adopt_dialog_dir, состояние изменит только она.
+        """
+        d = os.path.dirname(os.path.abspath(path))
+        if d != self.work_dir():
+            self._set_work_dir(d)
 
     def _apply_screen_data(self, p: dict) -> None:
         """Показать снимок из файла: трассы в Hold, основная — в паузе.

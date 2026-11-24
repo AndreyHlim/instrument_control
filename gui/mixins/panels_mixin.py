@@ -134,6 +134,9 @@ class PanelsMixin:
         self.but_right_toggle.toggled.connect(self._toggle_right_panel)
         self._toggle_right_panel(True)
 
+        # Рабочая директория — перед секциями методов (WorkDirMixin)
+        self._build_workdir_row()
+
         # Секции методов (будущие измерения)
         self._create_method_sections()
 
