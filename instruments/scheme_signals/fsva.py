@@ -83,6 +83,12 @@ def callbacks_map_fsva(form: QMainWindow, ctrl: str):
 
         # --- SWEEP ---
         'sweep': {
+            'label_sweeptime': {
+                'wheel_step': lambda step: form._send_cmd(
+                    'sweeptime_up' if step > 0 else 'sweeptime_down'),
+            },
+            'sweeptime_auto': form.on_sweeptime_auto_toggled,
+            'sweep_init': partial(form._send_cmd, 'sweep_init'),
             'radio_count': form.on_sweep_mode_changed,
             'tb_sweep_count': form.on_sweep_count_changed,
         },

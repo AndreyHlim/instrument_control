@@ -14,7 +14,7 @@ HEADER_BG = '#e8eef5'         # фон полосы заголовка
 HEADER_HOVER_BG = "#d0d1d3"   # фон полосы при наведении
 CTRL_ENABLE_TEXT = '#000000'
 BORDER_CTRL_COLOR = '#ababab'
-CTRL_HOVER_BG = '#e6e6e6'
+CTRL_HOVER_BG = "#bbbbbb"
 CTRL_PRESSED_BG = '#d0d0d0'
 SELECT_COLOR_BG = '#3399ff'
 PLOT_BTN_SIZE = 28        # квадрат кнопки панели действий, px
@@ -191,6 +191,17 @@ class Style(StrEnum):
         "min-height: 18px;max-height: 18px;"
         f"font-family: '{PLOT_LABEL_FONT_FAMILY}';"
         f"font-size: {FONT_SIZE_CTRL}pt;"
+        "}"
+        "QPushButton:hover { "
+        f"background-color: {CTRL_HOVER_BG}; "
+        "}"
+        "QPushButton:pressed { "
+        f"background-color: {CTRL_PRESSED_BG}; "
+        "}"
+        "QPushButton:disabled {"
+        f"color: {DISABLED_FG};"
+        f"background-color: {DISABLED_BG};"
+        f"border-color: {BORDER_CTRL_COLOR};"
         "}"
         "QPushButton:hover { "
         f"background-color: {CTRL_HOVER_BG}; "

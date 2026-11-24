@@ -67,6 +67,8 @@ class TraceWorker(QObject):
             'trace_acc': 50,
             'sweep': 50,
             'sweep_count': 50,
+            'sweeptime': 50,
+            'sweeptime_auto': 50,
             'status_errors': 2,
         }
         self._counters = {k: 0 for k in self._poll_intervals}
@@ -97,6 +99,9 @@ class TraceWorker(QObject):
             'det_set': 'det', 'trace_acc_set': 'trace_acc',
             'sweep_count_set': 'sweep_count',
             'sweep_mode': 'sweep',
+            'sweeptime_up': 'sweeptime',
+            'sweeptime_down': 'sweeptime',
+            'sweeptime_auto_on': 'sweeptime_auto',
             'set_rbw': 'rbw',
         }
 
@@ -238,6 +243,10 @@ class TraceWorker(QObject):
             state.sweep_single = self._analyzer.is_run_single_on()
         elif param == 'sweep_count':
             state.sweep_count = self._analyzer.get_sweep_count()
+        elif param == 'sweeptime':
+            state.sweeptime = self._analyzer.get_sweeptime()
+        elif param == 'sweeptime_auto':
+            state.sweeptime_auto = self._analyzer.is_sweeptime_auto_on()
         elif param == 'status_errors':
             state.errors = self._analyzer.get_status_errors()
 
@@ -348,6 +357,16 @@ class TraceWorker(QObject):
         elif cmd.startswith('sweep_count_set:'):
             val = int(cmd.split('sweep_count_set:', 1)[1])
             self._analyzer.set_sweep_count(val)
+        elif cmd == 'sweeptime_up':
+            self._analyzer.set_sweeptime_up(True)
+        elif cmd == 'sweeptime_down':
+            self._analyzer.set_sweeptime_up(False)
+        elif cmd == 'sweeptime_auto_on':
+            self._analyzer.auto_sweeptime_on()
+        elif cmd == 'sweep_init':
+            ok = self._analyzer.imm_emit()
+            if not ok:
+                print('[WORKER] INIT не подтверждён (*OPC?)')
         elif cmd == 'auto_max_on':
             self._analyzer.active_mrk().peak_track(2)
         elif cmd == 'auto_max_off':

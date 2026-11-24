@@ -174,6 +174,26 @@ class RS_FSVA3013:
     def set_sweep_count(self, count: int):
         self._resource.write(f':SENS:SWE:COUN {count}')
 
+    def auto_sweeptime_on(self) -> None:
+        """Установить время развёртки автоматическим."""
+        self._resource.write(':SENS:SWE:TIME:AUTO ON')
+
+    def is_sweeptime_auto_on(self) -> bool:
+        """Включено ли автоматическое время развёртки."""
+        return self._resource.query(':SENS:SWE:TIME:AUTO?').strip() == '1'
+
+    def set_sweeptime_up(self, vector: bool) -> None:
+        """Установить время развёртки автоматическим."""
+        if vector:
+            self._resource.write(':SENS:SWE:TIME UP')
+            return
+        self._resource.write(':SENS:SWE:TIME DOWN')
+
+    def get_sweeptime(self) -> float:
+        """Узнать время развёртки в секундах"""
+        sweeptime = self._resource.query(':SENS:SWE:TIME?')
+        return float(sweeptime)
+
     def spg_is_on(self) -> Qt.CheckState:
         if self._resource.query(':CALC:SGR?') == '1':
             return Qt.CheckState.Checked

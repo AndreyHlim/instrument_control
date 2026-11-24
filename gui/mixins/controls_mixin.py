@@ -73,6 +73,9 @@ class ControlsMixin:
         self.label_preamp = self.sec_ampl.widgets['label_preamp']
 
         # SWEEP
+        self.label_sweeptime = self.sec_sweep.widgets['label_sweeptime']
+        self.sweeptime_auto = self.sec_sweep.widgets['sweeptime_auto']
+        self.sweep_init = self.sec_sweep.widgets['sweep_init']
         self.tb_sweep_count = self.sec_sweep.widgets['tb_sweep_count']
         self.radio_count = self.sec_sweep.widgets['radio_count']
         self.radio_single = self.sec_sweep.widgets['radio_single']
@@ -135,6 +138,7 @@ class ControlsMixin:
             self.combo_preamp, self.label_atten, self.lbl_range,
             self.transducer, self.atten_auto, self.label_preamp,
             # управление sweep
+            self.label_sweeptime, self.sweeptime_auto, self.sweep_init,
             self.tb_sweep_count,
             self.radio_count, self.radio_single,
             # Трассы
@@ -146,6 +150,11 @@ class ControlsMixin:
         ]
         for w in controls:
             w.setEnabled(enabled)
+
+        if enabled:
+            # До первого кадра режим прибора неизвестен — Run неактивен,
+            # его включит синхронизация из _apply_state_params
+            self._update_sweep_init()
 
     # === ОБРАБОТЧИКИ ИЗМЕНЕНИЙ КОНТРОЛОВ =====================================
     # --- Обработчики контролов для управления Частотой, спаном ---------------
@@ -255,6 +264,25 @@ class ControlsMixin:
     # -------------------------------------------------------------------------
 
     # --- Обработчики контролов для управления SWEEP --------------------------
+    def _update_sweep_init(self) -> None:
+        """Run доступен только в режиме Single.
+
+        В Continuous кнопка не имеет смысла: прибор сам гонит развёртки
+        непрерывно, INIT не нужен (и часто отвечает ошибкой).
+        """
+        self.sweep_init.setEnabled(self.radio_single.isChecked())
+
+    def on_sweeptime_auto_toggled(self, checked: bool) -> None:
+        """Включить авто-время развёртки на приборе.
+
+        Команда отправляется только при включении: прибор сам выходит
+        из авто при установке конкретного времени (sweeptime_up/down),
+        как это устроено и для RBW/VBW. Снятие галочки руками ничего
+        прибору не шлёт — состояние вернёт опрос (см. Примечание).
+        """
+        if checked:
+            self._send_cmd('sweeptime_auto_on')
+
     def on_det_changed(self, text: str) -> None:
         """Сменить тип детектора.
 
@@ -286,6 +314,7 @@ class ControlsMixin:
             checked: True — непрерывный sweep, False — одиночный.
         """
         self._send_cmd(f'sweep_mode:{"cont" if checked else "single"}')
+        self._update_sweep_init()
 
     def on_sweep_count_changed(self) -> None:
         """Установить число развёрток для одиночного режима."""

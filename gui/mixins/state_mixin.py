@@ -92,8 +92,16 @@ class StateMixin:
         if state.sweep_single is not None:
             self._set_checked(self.radio_single, state.sweep_single)
             self._set_checked(self.radio_count, not state.sweep_single)
+            # Радиокнопки обновлялись с blockSignals — toggled не сработал,
+            # гейт кнопки Run применяем явно
+            self._update_sweep_init()
         if state.sweep_count is not None:
             self._set_spin(self.tb_sweep_count, state.sweep_count)
+        if state.sweeptime is not None:
+            self._safe_set_text(
+                self.label_sweeptime, self._format_sweeptime(state.sweeptime))
+        if state.sweeptime_auto is not None:
+            self._set_checked(self.sweeptime_auto, state.sweeptime_auto)
 
     def _safe_set_text(self, widget: QLineEdit | QLabel, text: str) -> None:
         """Записать значение в поле или метку, не мешая пользователю.
@@ -108,3 +116,14 @@ class StateMixin:
         if widget.text() == text:
             return
         widget.setText(text)
+
+    @staticmethod
+    def _format_sweeptime(sec: float) -> str:
+        """Время развёртки в человекочитаемой форме: '10 мс', '1.5 с'."""
+        if sec >= 1:
+            return f'{sec:g} с'
+        if sec >= 1e-3:
+            return f'{sec * 1e3:g} мс'
+        if sec >= 1e-6:
+            return f'{sec * 1e6:g} мкс'
+        return f'{sec * 1e9:g} нс'

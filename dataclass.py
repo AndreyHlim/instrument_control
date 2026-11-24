@@ -36,6 +36,8 @@ class DeviceState:
     trace_acc: str | None = None
     sweep_single: bool | None = None
     sweep_count: int | None = None
+    sweeptime: float | None = None          # секунды
+    sweeptime_auto: bool | None = None
 
     # Маркеры
     marker_level: float | None = None

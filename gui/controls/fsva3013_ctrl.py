@@ -237,19 +237,44 @@ SECTION_RBW = [
 # ВЫПАДАЮЩИЙ СПИСОК ЭЛЕМЕНТОВ ДЛЯ УПРАВЛЕНИЯ SWEEP
 SECTION_SWEEP = [
     {
+        'label': 'Sweep Time',
+        'widgets': [
+            {
+                'type': 'wheel_label',
+                'key': 'label_sweeptime',
+                'stretch': 2,
+                'style': Style.LBL_BORDER,
+            },
+            {
+                'type': 'checkbox',
+                'key': 'sweeptime_auto',
+                'text': 'Auto',
+                'value': False,
+                'stretch': 1,
+            },
+            {
+                'type': 'button',
+                'key': 'sweep_init',
+                'text': 'Run',
+                'stretch': 1,
+                'style': Style.H_20,
+            },
+        ]
+    },
+    {
         'label': 'Режим Sweep',
         'widgets': [
             {
                 'type': 'radio',
                 'key': 'radio_count',
-                'text': 'continuously',
+                'text': 'Continuous',
                 'checked': False,
-                "stretch": 1,
+                "stretch": 2,
             },
             {
                 'type': 'radio',
                 'key': 'radio_single',
-                'text': 'single',
+                'text': 'Single',
                 'checked': False,
                 "stretch": 1,
             },
