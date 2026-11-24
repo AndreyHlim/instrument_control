@@ -7,6 +7,7 @@ from function import resource_path
 FRAME_RADIUS = 0
 BORDER_COLOR = '#777777'
 HEADER_COLOR = '#2c3e50'      # цвет заголовков секций
+COLOR_BG = '#ffffff'       # фон выключенных контролов
 DISABLED_BG = '#c4c4c4'       # фон выключенных контролов
 DISABLED_FG = '#777777'       # текст выключенных контролов
 HEADER_BG = '#e8eef5'         # фон полосы заголовка
@@ -15,7 +16,7 @@ CTRL_ENABLE_TEXT = '#000000'
 BORDER_CTRL_COLOR = '#ababab'
 CTRL_HOVER_BG = '#e6e6e6'
 CTRL_PRESSED_BG = '#d0d0d0'
-
+SELECT_COLOR_BG = '#3399ff'
 PLOT_BTN_SIZE = 28        # квадрат кнопки панели действий, px
 PLOT_BTN_ICON_SIZE = 20
 PLOT_BTN_GAP = 4          # зазор кнопка↔рамка графика, px
@@ -121,21 +122,21 @@ class Style(StrEnum):
     TEXT_BOX = (
         "QLineEdit {"
         f"color: {CTRL_ENABLE_TEXT};"   # Цвет шрифта
-        "background-color: #ffffff;"    # Фон
+        f"background-color: {COLOR_BG};"    # Фон
         f"border: 1px solid {BORDER_CTRL_COLOR};"    # Рамка
         "border-radius: 0px;"           # Скругления углов
         "padding: 0px 2px;"
         "min-height: 18px;max-height: 18px;"
         f"font-family: '{PLOT_LABEL_FONT_FAMILY}';"
         f"font-size: {FONT_SIZE_CTRL}pt;"
-        "selection-background-color: #3399ff;"
-        "selection-color: #ffffff;"
+        f"selection-background-color: {SELECT_COLOR_BG};"
+        f"selection-color: {COLOR_BG};"
         "qproperty-alignment: 'AlignHCenter|AlignVCenter';"  # Центровка
         "}"
         "QLineEdit:disabled {"
         f"color: {DISABLED_FG};"
         f"background-color: {DISABLED_BG};"
-        "border-color: #bbbbbb;"
+        f"border-color: {BORDER_CTRL_COLOR};"
         "}"
     )
 
@@ -166,12 +167,16 @@ class Style(StrEnum):
         f"font-family: '{PLOT_LABEL_FONT_FAMILY}';"
         f"font-size: {FONT_SIZE_CTRL}pt;"
         "}"
-        "QPushButton:hover { background-color: #e6e6e6; }"
-        "QPushButton:pressed { background-color: #d0d0d0; }"
+        "QPushButton:hover { "
+        f"background-color: {CTRL_HOVER_BG}; "
+        "}"
+        "QPushButton:pressed { "
+        f"background-color: {CTRL_PRESSED_BG};"
+        "}"
         "QPushButton:disabled {"
         f"color: {DISABLED_FG};"
         f"background-color: {DISABLED_BG};"
-        "border-color: #bbbbbb;"
+        f"border-color: {BORDER_CTRL_COLOR};"
         "}"
     )
 
@@ -187,13 +192,17 @@ class Style(StrEnum):
         f"font-family: '{PLOT_LABEL_FONT_FAMILY}';"
         f"font-size: {FONT_SIZE_CTRL}pt;"
         "}"
-        "QPushButton:hover { background-color: #e6e6e6; }"
-        "QPushButton:pressed { background-color: #d0d0d0; }"
+        "QPushButton:hover { "
+        f"background-color: {CTRL_HOVER_BG}; "
+        "}"
+        "QPushButton:pressed { "
+        f"background-color: {CTRL_PRESSED_BG}; "
+        "}"
     )
 
     COMBO_BOX = (
         "QComboBox {"
-        "background-color: #ffffff;"
+        f"background-color: {COLOR_BG};"
         f"color: {CTRL_ENABLE_TEXT};"
         f"border: 1px solid {BORDER_CTRL_COLOR};"
         "border-radius: 0px;"
@@ -205,7 +214,7 @@ class Style(StrEnum):
         "QComboBox:disabled {"
         f"color: {DISABLED_FG};"
         f"background-color: {DISABLED_BG};"
-        "border-color: #bbbbbb;"
+        f"border-color: {BORDER_CTRL_COLOR};"
         "}"
         "QComboBox::drop-down {"
         "subcontrol-origin: padding;"
@@ -217,11 +226,11 @@ class Style(StrEnum):
         f'image: url("{_ARROW}");'
         "}"
         "QComboBox QAbstractItemView {"
-        "background-color: #ffffff;"
+        f"background-color: {COLOR_BG};"
         f"color: {CTRL_ENABLE_TEXT};"
         f"border: 1px solid {BORDER_CTRL_COLOR};"
-        "selection-background-color: #3399ff;"
-        "selection-color: #ffffff;"
+        f"selection-background-color: {SELECT_COLOR_BG};"
+        f"selection-color: {COLOR_BG};"
         "}"
     )
 
@@ -241,10 +250,14 @@ class Style(StrEnum):
         "QPushButton:disabled {"
         f"color: {DISABLED_FG};"
         f"background-color: {DISABLED_BG};"
-        "border-color: #bbbbbb;"
+        f"border-color: {BORDER_CTRL_COLOR};"
         "}"
-        "QPushButton:hover { background-color: #e6e6e6; }"
-        "QPushButton:pressed { background-color: #d0d0d0; }"
+        "QPushButton:hover { "
+        f"background-color: {CTRL_HOVER_BG}; "
+        "}"
+        "QPushButton:pressed { "
+        f"background-color: {CTRL_PRESSED_BG}; "
+        "}"
     )
     BUT_SPAN_TO_STEPCF = VAL_CFSTEP_TO_SPAN.replace(
         "min-width: 45px;max-width: 45px;",
@@ -259,13 +272,19 @@ class Style(StrEnum):
         "border-radius: 1px;"
         "padding: 0px;"
         "}"
-        "QToolButton:hover { background-color: #e6e6e6; }"
-        "QToolButton:pressed { background-color: #d0d0d0; }"
-        "QToolButton:checked { background-color: #d0d0d0; }"
+        "QToolButton:hover { "
+        f"background-color: {CTRL_HOVER_BG}; "
+        "}"
+        "QToolButton:pressed { "
+        f"background-color: {CTRL_PRESSED_BG}; "
+        "}"
+        "QToolButton:checked { "
+        f"background-color: {CTRL_PRESSED_BG}; "
+        "}"
         "QToolButton:disabled {"
         f"color: {DISABLED_FG};"
         f"background-color: {DISABLED_BG};"
-        "border-color: #bbbbbb;"
+        f"border-color: {BORDER_CTRL_COLOR};"
         "}"
     )
 
@@ -280,14 +299,13 @@ class Style(StrEnum):
         f"font-family: '{PLOT_LABEL_FONT_FAMILY}';"
         f"font-size: {FONT_SIZE_CTRL}pt;"
         "}"
-        # "QCheckBox:hover { background-color: #e6e6e6; }"
-        "QCheckBox:pressed { background-color: #d0d0d0; }"
+        "QCheckBox:pressed { "
+        f"background-color: {CTRL_PRESSED_BG}; "
+        "}"
         "QCheckBox:disabled {"
         f"color: {DISABLED_FG};"
         f"background-color: {DISABLED_BG};"
         "}"
-        # "QCheckBox::indicator { width: 16px; height: 16px; }"
-        # "QCheckBox::indicator:checked { background-color: #d0d0d0; }"
     )
 
     # Все QDoubleSpinBox
@@ -304,9 +322,7 @@ class Style(StrEnum):
         f"border: 1px solid {BORDER_CTRL_COLOR}; "     # Тонкая серая рамка
         "min-height: 18px;"
         "max-height: 18px;"
-        # "border-radius: 2px; "          # Небольшое скругления
-        # "padding: 2px 5px; "            # Отступы внутри рамки
-        "background-color: #ffffff;"      # Белый фон под текстом
+        f"background-color: {COLOR_BG};"    # Белый фон под текстом
     )
 
     MAIN_TRACE_COLOR = "#5353fd"    # основной график трассы
