@@ -304,3 +304,19 @@ class AccTracesMixin:
         ti = self._acc_legend.textItem
         ti.setHtml('<br>'.join(lines))
         self._place_acc_legend()
+
+    def _load_hold_trace(self, num: int, freqs: list, arr: list) -> None:
+        """Загрузить замороженный буфер трассы num (например, из файла).
+
+        Кривая создаётся при необходимости: в отличие от живого цикла
+        накопления, загрузка файла может случиться при ещё не созданной
+        кривой — сигналы комбобоксов в момент загрузки заглушены.
+        """
+        entry = self._acc_entries()[num]
+        entry['freqs'] = list(freqs)
+        entry['arr'] = np.asarray(arr, dtype=np.float64)
+        entry['count'] = 0
+        if entry['curve'] is None:
+            entry['curve'] = self.plotWidget.plot(
+                [], [], pen=pg.mkPen(self.ACC_TRACE_PEN[num], width=1))
+        entry['curve'].setData(freqs, entry['arr'])

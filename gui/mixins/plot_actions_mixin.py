@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (QFileDialog, QMessageBox, QToolButton,
                              QVBoxLayout, QWidget)
 
 from constants import (ADD_TRACE_MODE, DETECTORS_FSVA_REV, MARKER_TRACES,
-                       TRACE_ACC_REV, TRACE_HOLD, TRACE_OFF)
+                       TRACE_ACC_REV, TRACE_HOLD, TRACE_OFF, TRACE_ON)
 from function import resource_path
 from gui.styles import (COL_SPACING, COL_TOP, PLOT_ACTIONS_STRIP_W,
                         PLOT_BTN_GAP, PLOT_BTN_ICON_SIZE, PLOT_BTN_SIZE, Style)
@@ -399,9 +399,156 @@ class PlotActionsMixin:
         return hi >= main_freqs[0] and lo <= main_freqs[-1]
 
     def _but_open_screen_data_clicked(self) -> None:
-        """Заглушка: открытие сохранённых данных экрана."""
-        print('[PLOT ACTIONS] open screen data')
-        QMessageBox.information(
-            self, 'Открыть данные скриншота',
-            'В разработке...'
-        )
+        """Диалог загрузки снимка экрана из JSON."""
+        path, _ = QFileDialog.getOpenFileName(
+            self, 'Открыть данные экрана', '', 'JSON (*.json)')
+        if not path:
+            return
+        try:
+            with open(path, encoding='utf-8') as f:
+                payload = json.load(f)
+            if not isinstance(payload, dict):
+                raise ValueError('файл не содержит словаря')
+            for key in ('freq_start_hz', 'freq_stop_hz'):
+                if key not in payload:
+                    raise ValueError(f'нет ключа {key}')
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            QMessageBox.warning(
+                self, 'Открытие данных',
+                f'Файл не читается как снимок экрана:\n{exc}')
+            return
+        self._apply_screen_data(payload)
+
+    def _apply_screen_data(self, p: dict) -> None:
+        """Показать снимок из файла: трассы в Hold, основная — в паузе.
+
+        Работает и без подключения прибора: данные берутся из файла,
+        команды прибору не отправляются. Пауза устанавливается
+        программно и снимается обычными путями (_user_send / мышь).
+        """
+        # Сигналы комбо/чекбоксов глушим на время загрузки: программные
+        # изменения не должны ни снять паузу раньше времени, ни уйти
+        # прибору командами
+        blocked = [w for n in (1, 2)
+                   for w in (getattr(self, f'trc_{n}_on', None),
+                             getattr(self, f'trc_{n}_acc', None)) if w]
+        blocked += [w for w in (self.combo_mrk_trace, self.chk_mrk_hold,
+                                self.chk_mrk_autopeak) if w is not None]
+        for w in blocked:
+            w.blockSignals(True)
+        try:
+            self._load_screen_state(p)
+        finally:
+            for w in blocked:
+                w.blockSignals(False)
+
+    def _load_screen_state(self, p: dict) -> None:
+        """Заполнить кэши, кривую, буферы и маркеры значениями файла."""
+        # --- Окно X и Y-диапазон ---
+        self._current_x_min = p.get('freq_start_hz')
+        self._current_x_max = p.get('freq_stop_hz')
+        self._current_reflevel = p.get('ref_lvl')
+        self._current_range = p.get('range')
+        if (
+            self._current_reflevel is not None
+            and self._current_range is not None
+        ):
+            self._current_y_max = self._current_reflevel
+            self._current_y_min = self._current_reflevel - self._current_range
+
+        # --- RBW/VBW и единицы: и отображение, и будущий экспорт ---
+        self._rbw_hz = p.get('rbw_hz')
+        self._vbw_hz = p.get('vbw_hz')
+        self._rbw_str = (self._format_freq(self._rbw_hz)
+                         if self._rbw_hz is not None else '')
+        self._vbw_str = (self._format_freq(self._vbw_hz)
+                         if self._vbw_hz is not None else '')
+        self._current_amp_unit = p.get('ampl_unit')
+        t0 = p.get('trace_0') or {}
+        self._main_trace_det = t0.get('trc_det')
+        self._main_trace_acc = t0.get('trc_acc')
+
+        # --- Основная трасса: кривая и кэш ---
+        data0 = p.get('trc_0_data') or []
+        freqs = [row[0] for row in data0] or None
+        levels = [row[1] for row in data0] or None
+        self._last_freqs = freqs
+        self._last_levels = levels
+        self._curve.setData(freqs or [], levels or [])
+
+        # --- Доп. трассы: включённые — строго в Hold ---
+        self._load_acc_traces(p)
+
+        # --- Маркеры ---
+        if hasattr(self, '_marker_entries'):
+            self._load_markers(p)
+
+        # --- Перерисовать сетки/метки по загруженному окну ---
+        vb = self.plotWidget.getPlotItem().getViewBox()
+        self._updating_from_state = True
+        if self._current_x_min is not None:
+            vb.setRange(xRange=(self._current_x_min, self._current_x_max),
+                        padding=0)
+            self._update_x_grid(self._current_x_min, self._current_x_max)
+        if self._current_y_min is not None:
+            vb.setRange(yRange=(self._current_y_min, self._current_y_max),
+                        padding=0)
+            self._update_y_grid(self._current_y_min, self._current_y_max)
+        self._updating_from_state = False
+        if self._current_x_min is not None:
+            self._update_info_labels(self._current_x_min, self._current_x_max)
+        if hasattr(self, '_marker_entries'):
+            self._markers_reposition()
+            self._update_markers_legend()
+
+        # --- Пауза в самом конце: перекрывает всё, что могло её снять ---
+        self._set_paused(True)
+
+    def _load_acc_traces(self, p: dict) -> None:
+        """Загрузить доп. трассы из файла: включённые — в Hold.
+
+        Сигналы контроллов уже заглушены вызывающим кодом. Трассы
+        очищаются явно (_acc_clear), а не через _reset_acc_traces:
+        тот пропускает Hold-трассы, а при повторной загрузке файла
+        именно они остались бы с кривой прошлого снимка.
+        """
+        hold_text = next(
+            (t for t, v in ADD_TRACE_MODE.items() if v == TRACE_HOLD), None)
+        for n in (1, 2):
+            self._acc_clear(n)
+            on = bool((p.get(f'trace_{n}') or {}).get('on'))
+            combo_on = getattr(self, f'trc_{n}_on', None)
+            if combo_on is not None:
+                combo_on.setCurrentText(TRACE_ON if on else TRACE_OFF)
+            if not on:
+                continue
+            combo_acc = getattr(self, f'trc_{n}_acc', None)
+            if combo_acc is not None:
+                combo_acc.setCurrentText(hold_text or TRACE_HOLD)
+            data = p.get(f'trc_{n}_data') or []
+            if data:
+                self._load_hold_trace(
+                    n, [row[0] for row in data], [row[1] for row in data])
+        self._update_acc_legend()
+
+    def _load_markers(self, p: dict) -> None:
+        """Загрузить маркеры из файла: on — с частотой и трассой."""
+        for n in (1, 2):
+            m = p.get(f'marker_{n}') or {}
+            entry = self._marker_entries[n]
+            entry['hold'] = False
+            entry['autopeak'] = False
+            on = bool(m.get('on')) and m.get('freq_hz') is not None
+            if on:
+                trc = m.get('trc')
+                entry['trace_idx'] = (
+                    MARKER_TRACES.index(trc) + 1
+                    if trc in MARKER_TRACES else 1)
+                entry['freq'] = m['freq_hz']
+                # Программное включение: clicked молчит —
+                # всю логику включения делает обработчик напрямую
+                self._marker_btns[n].setChecked(True)
+                self._on_m_btn_clicked(n, True)
+            else:
+                self._marker_btns[n].setChecked(False)
+                self._on_m_btn_clicked(n, False)
