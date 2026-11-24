@@ -360,6 +360,7 @@ class MarkersMixin:
         entry['freq'] = x
         entry['frac'] = (x - x_min) / (x_max - x_min)
         self._place_marker_line(num)
+        self._update_markers_legend()
 
     # --- Чекбоксы hold / Auto Peak ---------------------------------------
     def _on_hold_toggled(self, checked: bool) -> None:
@@ -468,8 +469,7 @@ class MarkersMixin:
     def _marker_autopeak_once(self, num: int) -> None:
         freq = self._find_peak_freq(num)
         if freq is not None:
-            self._marker_entries[num]['freq'] = freq
-            self._place_marker_line(num)
+            self._move_marker_to(num, freq)
 
     def _on_peak(self) -> None:
         if self._marker_active is None:
@@ -484,8 +484,7 @@ class MarkersMixin:
         self._disable_autopeak(num)
         freq = self._find_next_peak_freq(num)
         if freq is not None:
-            self._marker_entries[num]['freq'] = freq
-            self._place_marker_line(num)
+            self._move_marker_to(num, freq)
 
     def _disable_autopeak(self, num: int) -> None:
         """Погасить Auto Peak у маркера num (чекбокс — без петли сигналов)."""
@@ -739,3 +738,16 @@ class MarkersMixin:
         name_it.setVisible(True)
         val_it.setVisible(True)
         self._place_markers_legend()
+
+    def _move_marker_to(self, num: int, freq: float | None) -> None:
+        """Поставить маркер num на частоту freq и обновить легенду.
+
+        Точка правды для перемещения маркера: позиция, линия и легенда
+        меняются вместе. Нужно потому, что при паузе update_state не
+        перерисовывает легенду — каждый путь смены частоты обязан
+        сделать это сам.
+        """
+        if freq is not None:
+            self._marker_entries[num]['freq'] = freq
+            self._place_marker_line(num)
+        self._update_markers_legend()
