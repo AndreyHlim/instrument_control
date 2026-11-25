@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (QFileDialog, QHBoxLayout, QLabel, QLineEdit,
 
 from constants import DEFAULT_PATH
 from function import resource_path
-from gui.styles import Style
+from gui.styles import CTRL_ALERT_COLOR, Style
 
 
 class WorkDirMixin:
@@ -43,11 +43,12 @@ class WorkDirMixin:
         return self._work_dir
 
     def _set_work_dir(self, path: str) -> None:
-        """Присвоить рабочую директорию: поле, тултип, курсор в конец."""
+        """Присвоить рабочую директорию: поле, тултип, курсор, цвет."""
         self._work_dir = path
         self.tb_workdir.setText(path)
         self.tb_workdir.setToolTip(path)
         self.tb_workdir.setCursorPosition(len(path))
+        self._apply_workdir_color()
 
     def _build_workdir_row(self) -> None:
         """Собрать блок панели: подпись над полем пути + две кнопки.
@@ -96,6 +97,8 @@ class WorkDirMixin:
         lay.addWidget(row)
         self.layout_right.addRow(box)
 
+        self._apply_workdir_color()
+
     def _on_but_workdir_clicked(self) -> None:
         """Диалог выбора рабочей директории с записью в QSettings."""
         path = QFileDialog.getExistingDirectory(
@@ -117,3 +120,17 @@ class WorkDirMixin:
                 return
             path = parent
         QDesktopServices.openUrl(QUrl.fromLocalFile(path))
+
+    def _apply_workdir_color(self) -> None:
+        """Красный текст поля, пока рабочая папка — DEFAULT_PATH.
+
+        Сигнал: директория ещё дефолтная. Пользовательский выбор через
+        диалог (или уход за файлом через диалог сохранения) возвращает
+        обычный цвет. Сравнение нормализовано: диалог может вернуть
+        тот же путь с другим регистром диска или разделителями.
+        """
+        same = (os.path.normcase(os.path.normpath(self._work_dir))
+                == os.path.normcase(os.path.normpath(DEFAULT_PATH)))
+        self.tb_workdir.setStyleSheet(
+            Style.TEXT_BOX
+            + (f"QLineEdit {{ color: {CTRL_ALERT_COLOR}; }}" if same else ''))

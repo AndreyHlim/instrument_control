@@ -169,19 +169,25 @@ class PanelsMixin:
     def _create_method_sections(self) -> None:
         """Создать секции методов измерений на правой панели.
 
-        Секции стартуют свёрнутыми, как «Амплитуда». Контент каждой —
-        схема SECTION_* из gui/controls/methods.
+        Секции стартуют свёрнутыми и образуют эксклюзивную группу:
+        раскрытая секция гасит остальные — видеть управление двумя
+        методами одновременно смысла нет, а вертикальное место панели
+        ограничено. Все секции закрытыми быть могут.
         """
-        self.sec_method_1 = self._add_method_section('Метод измерений 1')
-        self.sec_method_1.add_inputs(SECTION_M1)
-        self.sec_method_2 = self._add_method_section('Метод измерений 2')
-        self.sec_method_2.add_inputs(SECTION_M2)
-        self.sec_method_3 = self._add_method_section('Метод измерений 3')
-        self.sec_method_3.add_inputs(SECTION_M3)
+        self._method_group: list[CollapsibleSection] = []
+        for title, schema in (
+            ('Метод измерений 1', SECTION_M1),
+            ('Метод измерений 2', SECTION_M2),
+            ('Метод измерений 3', SECTION_M3),
+        ):
+            section = self._add_method_section(title)
+            section.add_inputs(schema)
+            self._method_group.append(section)
 
     def _add_method_section(self, title: str) -> CollapsibleSection:
         """Создать одну секцию метода: свёрнутая, прижата к верху панели."""
         section = CollapsibleSection(title)
+        section.set_exclusive_group(self._method_group)
         section._toggle(False)
         self.layout_right.addWidget(section)
         return section

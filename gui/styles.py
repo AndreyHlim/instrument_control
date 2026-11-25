@@ -38,6 +38,9 @@ PLOT_LABEL_FONT_SIZE = 10  # pt, метка ошибок индикации
 FONT_SIZE_CTRL = 9
 PLOT_LABEL_FONT_BOLD = True
 
+CTRL_ENABLE_TEXT = '#000000'
+CTRL_ALERT_COLOR = '#cc0000'   # сигнальный текст (дефолтная рабочая папка)
+
 
 def plot_grid_pen():
     """Пен линий сетки главного графика (единственная точка стиля)."""

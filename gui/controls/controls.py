@@ -16,6 +16,7 @@ class CollapsibleSection(QWidget):
     def __init__(self, title: str, parent=None):
         super().__init__(parent)
         self._is_expanded = True
+        self._exclusive_group: list | None = None   # «одна раскрыта за раз»
         self.widgets: Dict[str, QWidget] = {}
 
         self.setSizePolicy(
@@ -64,6 +65,15 @@ class CollapsibleSection(QWidget):
         self.content_widget.setStyleSheet(Style.WIDGET_SECTION)
 
         layout.addWidget(self.content_widget)
+
+    def set_exclusive_group(self, group: list['CollapsibleSection']) -> None:
+        """Включить секцию в группу «одна раскрыта за раз».
+
+        Раскрытие секции гасит остальные участники группы; сворачивание
+        единственной раскрытой секции ей разрешено — «все закрыты» —
+        легальное состояние группы (как радиокнопки с флагом-исключением).
+        """
+        self._exclusive_group = group
 
     def _create_single_widget(self, item: Dict[str, Any]) -> QWidget:
         """Создание одного виджета по его описанию"""
@@ -308,6 +318,10 @@ class CollapsibleSection(QWidget):
         self._toggle(checked)
 
     def _toggle(self, checked: bool):
+        if checked and self._exclusive_group is not None:
+            for other in self._exclusive_group:
+                if other is not self and other._is_expanded:
+                    other._toggle(False)
         self._is_expanded = checked
         self.header_button.setArrowType(
             Qt.ArrowType.DownArrow if checked
