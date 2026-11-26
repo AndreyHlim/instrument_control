@@ -1,29 +1,55 @@
-"""Схема секции метода измерений 1 (АМ) — заготовка.
+from gui.styles import Style
 
-Поля-заглушки подобраны по смыслу АМ-измерений (несущая, глубина
-модуляции); при наполнении реальными элементами замените или дополните.
+"""Схема секции метода измерений 1.
+
+SECTION_M1 — верхняя часть секции (кнопки файлов и добавления частот),
+применяется общим циклом панелей. SECTION_M1_BOTTOM — нижняя часть
+(чекбоксы, накопления, S/N/Стоп), применяется миксином метода ПОСЛЕ
+добавления таблицы — иначе она встанет ниже этого ряда.
 """
 
 SECTION_M1 = [
     {
-        'label': 'Частота несущей',
-        'type': 'freq_edit',
-        'key': 'am_carrier',
-        'text': '937,5 МГц',
+        'label': None,
+        'type': 'hbox',
+        'items': [
+            {'type': 'button', 'key': 'm1_open',
+             'icon': 'gui/icons/open_file.png', 'style': Style.BUT_SQUARE},
+            {'type': 'button', 'key': 'm1_save',
+             'icon': 'gui/icons/save_file.png', 'style': Style.BUT_SQUARE},
+            {'type': 'button', 'key': 'm1_clear',
+             'icon': 'gui/icons/clear.png', 'style': Style.BUT_SQUARE},
+            {'type': 'spacer'},
+            {'type': 'button', 'key': 'm1_add_cf', 'text': '+Fц',
+                'style': Style.H_20},
+            {'type': 'button', 'key': 'm1_add_mrk', 'text': '+Fмрк',
+                'style': Style.H_20},
+            {'type': 'button', 'key': 'm1_add_df', 'text': '+∆Fмрк',
+                'style': Style.H_20},
+            {'type': 'spacer'},
+            {'type': 'button', 'key': 'm1_search',
+                'icon': 'gui/icons/search.png', 'style': Style.BUT_SQUARE},
+        ],
     },
-    {
-        'label': 'Глубина модуляции',
-        'type': 'value_edit',
-        'key': 'am_depth',
-        'text': '30',
-    },
+]
+
+SECTION_M1_BOTTOM = [
     {
         'label': None,
         'type': 'hbox',
         'items': [
-            {'type': 'button', 'key': 'am_start', 'text': 'Старт'},
-            {'type': 'spacer'},
-            {'type': 'button', 'key': 'am_stop', 'text': 'Стоп'},
+            {'type': 'button', 'key': 'm1_s', 'text': 'S',
+             'style': Style.H_20, 'stretch': 1},
+            {'type': 'button', 'key': 'm1_n', 'text': 'N',
+             'style': Style.H_20, 'stretch': 1},
+            {'type': 'button', 'key': 'm1_stop', 'text': 'Стоп',
+             'style': Style.H_20, 'stretch': 1},
+            {'type': 'double', 'key': 'm1_accum', 'min': 1, 'max': 999,
+             'decimals': 0, 'value': 10, 'style': Style.SPIN_BOX,
+             'stretch': 1},
+            {'type': 'checkbox', 'key': 'm1_sel_only', 'text': 'Select'},
+            {'type': 'checkbox', 'key': 'm1_screens', 'text': 'Screen',
+             'value': True},
         ],
     },
 ]

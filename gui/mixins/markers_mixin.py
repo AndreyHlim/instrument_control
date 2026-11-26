@@ -665,6 +665,7 @@ class MarkersMixin:
         if not visible:
             name_it.setVisible(False)
             val_it.setVisible(False)
+            self._notify_markers_hook()
             return
         on1, color1, arr1, fr1 = self._acc_trace_info(0)
         on2, color2, arr2, fr2 = self._acc_trace_info(1)
@@ -738,6 +739,7 @@ class MarkersMixin:
         name_it.setVisible(True)
         val_it.setVisible(True)
         self._place_markers_legend()
+        self._notify_markers_hook()
 
     def _move_marker_to(self, num: int, freq: float | None) -> None:
         """Поставить маркер num на частоту freq и обновить легенду.
@@ -751,3 +753,9 @@ class MarkersMixin:
             self._marker_entries[num]['freq'] = freq
             self._place_marker_line(num)
         self._update_markers_legend()
+
+    def _notify_markers_hook(self) -> None:
+        """Хук: панели, следящие за состоянием маркеров (метод 1: ∆F)."""
+        hook = getattr(self, '_m1_markers_state_changed', None)
+        if hook is not None:
+            hook()

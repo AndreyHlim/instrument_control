@@ -69,6 +69,7 @@ class StateMixin:
                 self.label_reflevel, f'{state.reflevel:g}')
         if state.amp_unit is not None:
             self._set_combo(self.amp_unit, state.amp_unit)
+            self._m1_refresh_unit()
         if state.transducer is not None:
             self._set_combo(self.transducer, state.transducer)
         if state.atten is not None:

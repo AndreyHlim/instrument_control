@@ -481,6 +481,7 @@ class PlotActionsMixin:
         self._vbw_str = (self._format_freq(self._vbw_hz)
                          if self._vbw_hz is not None else '')
         self._current_amp_unit = p.get('ampl_unit')
+        self._m1_refresh_unit()
         t0 = p.get('trace_0') or {}
         self._main_trace_det = t0.get('trc_det')
         self._main_trace_acc = t0.get('trc_acc')
@@ -517,6 +518,7 @@ class PlotActionsMixin:
         if hasattr(self, '_marker_entries'):
             self._markers_reposition()
             self._update_markers_legend()
+        self._m1_refresh_unit()
 
         # --- Пауза в самом конце: перекрывает всё, что могло её снять ---
         self._set_paused(True)

@@ -170,19 +170,21 @@ class PanelsMixin:
         """Создать секции методов измерений на правой панели.
 
         Секции стартуют свёрнутыми и образуют эксклюзивную группу:
-        раскрытая секция гасит остальные — видеть управление двумя
-        методами одновременно смысла нет, а вертикальное место панели
-        ограничено. Все секции закрытыми быть могут.
+        раскрытая секция гасит остальные. Атрибуты sec_method_N
+        сохраняются на окне — их читают миксины методов.
         """
         self._method_group: list[CollapsibleSection] = []
-        for title, schema in (
-            ('Метод измерений 1', SECTION_M1),
-            ('Метод измерений 2', SECTION_M2),
-            ('Метод измерений 3', SECTION_M3),
-        ):
+        for num, (title, schema) in enumerate(
+                (('Метод измерений 1', SECTION_M1),
+                 ('Метод измерений 2', SECTION_M2),
+                 ('Метод измерений 3', SECTION_M3)), start=1):
             section = self._add_method_section(title)
             section.add_inputs(schema)
+            setattr(self, f'sec_method_{num}', section)
             self._method_group.append(section)
+
+        # Метод 1: таблица и обработчики (Method1Mixin)
+        self.settings_method_1()
 
     def _add_method_section(self, title: str) -> CollapsibleSection:
         """Создать одну секцию метода: свёрнутая, прижата к верху панели."""
