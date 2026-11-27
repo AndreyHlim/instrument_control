@@ -137,6 +137,7 @@ class MarkersMixin:
                 'trace_idx': 1,  # 1 — основная, 2 — трасса 1, 3 — трасса 2
             }
         self._marker_active: int | None = None
+        self._markers_locked: bool = False   # замок секции на время измерений
 
         # Видимость маркера меняется ТОЛЬКО кликом пользователя:
         # clicked эмитится только от мыши/клавиатуры и несёт новое
@@ -271,7 +272,9 @@ class MarkersMixin:
     # --- Геометрия -------------------------------------------------------
     def _place_marker_line(self, num: int) -> None:
         entry = self._marker_entries[num]
-        if entry['line'] is None or self._current_x_min is None:
+        if entry['line'] is None \
+                or self._current_x_min is None \
+                or entry['freq'] is None:
             return
         vb = self.plotWidget.getPlotItem().getViewBox()
         x_min, x_max = vb.viewRange()[0]   # видимая область, не трасса
@@ -342,6 +345,8 @@ class MarkersMixin:
 
     # --- Перетаскивание ярлычка ------------------------------------------
     def _on_label_drag_start(self, num: int) -> None:
+        if self._markers_locked:
+            return
         # Активировать маркер ярлычка: кнопки синхронизируем программно
         # (clicked молчит), активность — хелпером
         other = 2 if num == 1 else 1
@@ -352,6 +357,8 @@ class MarkersMixin:
         self._disable_autopeak(num)
 
     def _on_label_drag_move(self, num: int, x: float) -> None:
+        if self._markers_locked:
+            return
         x_min, x_max = self._current_x_min, self._current_x_max
         if x_min is None or x_max <= x_min:
             return
@@ -759,3 +766,20 @@ class MarkersMixin:
         hook = getattr(self, '_m1_markers_state_changed', None)
         if hook is not None:
             hook()
+
+    def _set_markers_locked(self, locked: bool) -> None:
+        """Замок секции маркеров на время измерений метода 1.
+
+        Глушится вся секция: кнопки М1/М2, All off и контролы активного
+        маркера, плюс запрещается перетаскивание ярлычков (сцена о
+        виджетах не знает — охраняется флагом). При снятии замка
+        активность контролов восстанавливается по состоянию
+        (_marker_active is not None): замок не должен стирать различие
+        «нет активного маркера».
+        """
+        self._markers_locked = locked
+        for btn in self._marker_btns.values():
+            btn.setEnabled(not locked)
+        self.but_mrk_all_off.setEnabled(not locked)
+        self._set_marker_ctrls_enabled(
+            not locked and self._marker_active is not None)

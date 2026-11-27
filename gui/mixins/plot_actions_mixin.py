@@ -310,59 +310,6 @@ class PlotActionsMixin:
         with open(path, 'w', encoding='utf-8') as f:
             f.write('\n'.join(lines) + '\n')
 
-    def _export_json(self, path: str, d: dict) -> None:
-        """Записать кадр в JSON: коды прибора и сырые значения.
-
-        Частотные значения (Гц) несут суффикс _hz в имени ключа —
-        размерность зашита в контракт формата.
-        """
-        det = d['det']
-        traces = {}
-        for n in (1, 2):
-            t = d['traces'][n]
-            traces[f'trace_{n}'] = {
-                'on': t['on'],
-                'trc_det': det,
-                'trace_det': t['det'],
-                'trc_acc': (ADD_TRACE_MODE.get(t['acc_kind'])
-                            if t['acc_kind'] else None),
-            }
-
-        markers = {}
-        for n in (1, 2):
-            m = d['markers'][n]
-            markers[f'marker_{n}'] = {
-                'on': m['on'] and m['freq'] is not None,
-                'trc': m['trc'],
-                'freq_hz': m['freq'] if m['on'] else None,
-            }
-
-        payload = {
-            'freq_start_hz': d['freq_start'],
-            'freq_stop_hz': d['freq_stop'],
-            'span_hz': d['span'],
-            'rbw_hz': d['rbw'],
-            'vbw_hz': d['vbw'],
-            'trace_0': {'on': d['freqs'] is not None,
-                        'trc_det': det, 'trc_acc': d['acc']},
-            **traces,
-            **markers,
-            'ref_lvl': d['ref_lvl'],
-            'ampl_unit': d['amp_unit'],
-            'range': d['range'],
-        }
-        for key, (f_arr, v_arr) in (
-                ('trc_0_data', (d['freqs'], d['levels'])),
-                ('trc_1_data', (d['traces'][1]['freqs'],
-                                d['traces'][1]['arr'])),
-                ('trc_2_data', (d['traces'][2]['freqs'],
-                                d['traces'][2]['arr']))):
-            payload[key] = ([[f, a] for f, a in zip(f_arr, v_arr)]
-                            if f_arr is not None and v_arr is not None else [])
-
-        with open(path, 'w', encoding='utf-8') as f:
-            json.dump(payload, f, ensure_ascii=False, indent=1)
-
     def _trace_txt_column(self, main_freqs, t: dict) -> list[str]:
         """Столбец трассы для TXT: значения на сетке основной трассы.
 
@@ -582,3 +529,58 @@ class PlotActionsMixin:
             else:
                 self._marker_btns[n].setChecked(False)
                 self._on_m_btn_clicked(n, False)
+
+    def _build_json_payload(self, d: dict) -> dict:
+        """Собрать словарь снимка для JSON из собранных данных.
+
+        Выделено из _export_json: тот же формат нужен и автоснимкам
+        метода 1, которые дописываются в существующий файл.
+        """
+        det = d['det']
+        traces = {}
+        for n in (1, 2):
+            t = d['traces'][n]
+            traces[f'trace_{n}'] = {
+                'on': t['on'],
+                'trc_det': det,
+                'trace_det': t['det'],
+                'trc_acc': (ADD_TRACE_MODE.get(t['acc_kind'])
+                            if t['acc_kind'] else None),
+            }
+        markers = {}
+        for n in (1, 2):
+            m = d['markers'][n]
+            markers[f'marker_{n}'] = {
+                'on': m['on'] and m['freq'] is not None,
+                'trc': m['trc'],
+                'freq_hz': m['freq'] if m['on'] else None,
+            }
+        payload = {
+            'freq_start_hz': d['freq_start'],
+            'freq_stop_hz': d['freq_stop'],
+            'span_hz': d['span'],
+            'rbw_hz': d['rbw'],
+            'vbw_hz': d['vbw'],
+            'trace_0': {'on': d['freqs'] is not None,
+                        'trc_det': det, 'trc_acc': d['acc']},
+            **traces,
+            **markers,
+            'ref_lvl': d['ref_lvl'],
+            'ampl_unit': d['amp_unit'],
+            'range': d['range'],
+        }
+        for key, (f_arr, v_arr) in (
+                ('trc_0_data', (d['freqs'], d['levels'])),
+                ('trc_1_data', (d['traces'][1]['freqs'],
+                                d['traces'][1]['arr'])),
+                ('trc_2_data', (d['traces'][2]['freqs'],
+                                d['traces'][2]['arr']))):
+            payload[key] = ([[f, a] for f, a in zip(f_arr, v_arr)]
+                            if f_arr is not None and v_arr is not None else [])
+        return payload
+
+    def _export_json(self, path: str, d: dict) -> None:
+        """Записать кадр в JSON: коды прибора и сырые значения."""
+        payload = self._build_json_payload(d)
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(payload, f, ensure_ascii=False, indent=1)

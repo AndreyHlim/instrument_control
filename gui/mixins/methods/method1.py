@@ -1,3 +1,4 @@
+import json
 import os
 from bisect import bisect_left
 
@@ -407,7 +408,13 @@ class Method1Mixin:
     # --- Сохранение файла ---------------------------------------------------
 
     def _m1_save_clicked(self) -> None:
-        """Сохранить таблицу в TXT: заголовки + строки через \\t."""
+        """Сохранить таблицу в TXT: заголовки + строки через \\t.
+
+        Дробная часть — запятая (соглашение Excel/локали ru), в ячейках
+        таблицы точка не трогается: конвертация только на этапе записи.
+        Обратная загрузка понимает обе формы (_m1_parse_row заменяет
+        запятую на точку).
+        """
         t = self._m1_table
         if t.rowCount() == 0:
             QMessageBox.information(self, 'Сохранение результатов',
@@ -421,11 +428,18 @@ class Method1Mixin:
             return
         if not path.lower().endswith('.txt'):
             path += '.txt'
+
+        def comma(cell: str) -> str:
+            # Ячейка без точки — заголовочный текст, замены не боится:
+            # запятых вне чисел в колонках 0–2 нет
+            return cell.replace('.', ',')
+
         unit = self.amp_unit.currentText().strip() or '—'
         lines = ['\t'.join(('Частота, МГц', f'Usn, {unit}', f'Un, {unit}'))]
         for r in range(t.rowCount()):
             lines.append('\t'.join(
-                t.item(r, c).text() if t.item(r, c) is not None else ''
+                comma(t.item(r, c).text()
+                      if t.item(r, c) is not None else '')
                 for c in range(3)))
         try:
             with open(path, 'w', encoding='utf-8') as f:
@@ -481,6 +495,7 @@ class Method1Mixin:
             return
 
         self._m1_seq_stop = False
+        m1 = self._marker_entries[1]
         self._m1_seq = {'kind': kind, 'col': cfg['col'], 'trace': cfg['trace'],
                         'rows': rows, 'idx': 0, 'freq_hz': None,
                         'phase': 'idle', 'watchdog': None,
@@ -489,7 +504,31 @@ class Method1Mixin:
                         'trc_saved': {
                             t: (getattr(self, f'trc_{t}_on').currentText(),
                                 getattr(self, f'trc_{t}_acc').currentText())
-                            for t in (1, 2)}}
+                            for t in (1, 2)},
+                        'mrk1_saved': {
+                            'on': (m1['line'] is not None
+                                   and m1['line'].isVisible()),
+                            'freq': m1['freq'],
+                            'frac': m1['frac'],
+                            'hold': m1['hold'],
+                            'autopeak': m1['autopeak']}}
+        m1['hold'] = True
+        m1['autopeak'] = False
+        m1['frac'] = 0.5
+        if self._current_x_min is not None:
+            m1['freq'] = (self._current_x_min + self._current_x_max) / 2
+        if m1['line'] is None:
+            self._create_marker_item(1)   # freq уже задан — упадёт иначе
+        m1['line'].setVisible(True)
+        m1['label'].setVisible(True)
+        if self._marker_active == 1:
+            # Активен маркер 1 — чекбоксы синхронизируем без петли сигналов
+            self.chk_mrk_hold.blockSignals(True)
+            self.chk_mrk_hold.setChecked(True)
+            self.chk_mrk_hold.blockSignals(False)
+            self._disable_autopeak(1)   # снимет и чекбокс
+        self._place_marker_line(1)
+        self._update_markers_legend()
         self._m1_seq_lock_ui(True)
         # Блокируем элементы управления анализатором
         self._set_analyzer_controls_enabled(False)
@@ -551,7 +590,9 @@ class Method1Mixin:
                 f'RBW/VBW =\t{self._rbw_str or "—"}/{self._vbw_str or "—"}\n'
                 f'Span =\t\t{span_str}\n'
                 f'Аттенюатор:\t{self.label_atten.text().strip() or "—"} дБ\n'
-                f'Предусилитель:\t{self.combo_preamp.currentText() or "—"}\n\n'
+                f'Предусилитель:\t{self.combo_preamp.currentText() or "—"}\n'
+                f'Калибровка:\t{self.transducer.currentText().strip() or "—"}'
+                '\n\n'
                 'Приступить?')
         return QMessageBox.question(
             self, 'Метод измерений 1', text) is QMessageBox.StandardButton.Yes
@@ -623,6 +664,7 @@ class Method1Mixin:
             it = self._m1_table.item(row, seq['col'])
             if it is not None:
                 it.setText('' if amp is None else self._m1_fmt_amp(amp))
+            self._m1_save_screenshot()
             seq['idx'] += 1
             seq['phase'] = 'idle'
             QTimer.singleShot(0, self._m1_next_frequency)
@@ -721,10 +763,31 @@ class Method1Mixin:
             getattr(self, f'trc_{t}_acc').setCurrentText(acc_txt)
             self._acc_clear(t)
         self._update_acc_legend()
-
         # Основная трасса — на экран независимо от того, что было
         # до прогона (ваше требование: всегда True, без сохранения)
         self.chk_main_visible.setChecked(True)
+
+        # Маркер 1 — вернуть то, что было до прогона. Кнопку М1 не трогаем:
+        # clicked-семантика сохраняется, инвариант «кнопка нажата ⇔ линия
+        # видна» не нарушается.
+        saved = seq['mrk1_saved']
+        entry = self._marker_entries[1]
+        entry['freq'] = saved['freq']
+        entry['frac'] = saved['frac']
+        entry['hold'] = saved['hold']
+        entry['autopeak'] = saved['autopeak']
+        if entry['line'] is not None:
+            entry['line'].setVisible(saved['on'])
+            entry['label'].setVisible(saved['on'])
+        if self._marker_active == 1:
+            self.chk_mrk_hold.blockSignals(True)
+            self.chk_mrk_hold.setChecked(entry['hold'])
+            self.chk_mrk_hold.blockSignals(False)
+            self.chk_mrk_autopeak.blockSignals(True)
+            self.chk_mrk_autopeak.setChecked(entry['autopeak'])
+            self.chk_mrk_autopeak.blockSignals(False)
+        self._place_marker_line(1)
+        self._update_markers_legend()
 
         if done:
             QMessageBox.information(
@@ -736,9 +799,76 @@ class Method1Mixin:
         w = self.sec_method_1.widgets
         for key in ('m1_open', 'm1_save', 'm1_clear',
                     'm1_add_cf', 'm1_add_mrk', 'm1_add_df', 'm1_search',
-                    'm1_s', 'm1_n', 'm1_accum'):
+                    'm1_s', 'm1_n', 'm1_accum',
+                    'm1_sel_only', 'm1_screens', 'm1_det_s', 'm1_det_n'):
             w[key].setEnabled(not locked)
+        # Секция маркеров: на время прогона глушится целиком, при
+        # снятии замка возвращает штатную активность по состоянию
+        self._set_markers_locked(locked)
         if not locked:
             # Зависимые кнопки: их активность определяется состоянием
             # (маркерами), а не снятием блокировки прогона
             self._m1_markers_state_changed()
+
+    @staticmethod
+    def _m1_file_freq(freq_hz: float) -> str:
+        """МГц для имени файла снимка: один знак после запятой, без
+        округления — хвост отбрасывается (937.56 → '937.5')."""
+        whole, frac = f'{freq_hz / 1e6:.6f}'.split('.')
+        return f'{whole}.{frac[:1]}'
+
+    def _m1_save_screenshot(self) -> None:
+        """Сохранить/дополнить снимок по частоте строки (галочка Screen).
+
+        Файл '<частота>.json' в рабочей директории, имя — МГц с одним
+        знаком после запятой без округления. Автоснимок несёт только
+        измеряемую сейчас трассу: ни основной трассы (trace_0/
+        trc_0_data), ни трассы другого прогона в нём нет. Если файл
+        уже есть — чужая трасса сохранённого снимка не трогается:
+        update() не изменяет ключи, отсутствующие в fresh.
+        """
+        if not self.sec_method_1.widgets['m1_screens'].isChecked():
+            return
+        seq = self._m1_seq
+        if seq is None or seq['freq_hz'] is None:
+            return
+        path = os.path.join(self.work_dir(),
+                            f'{self._m1_file_freq(seq["freq_hz"])}.json')
+        fresh = self._build_json_payload(self._collect_export_data())
+
+        # В снимок идёт только измеряемая трасса: основная и чужая
+        # (другого прогона) — вычищаются ещё до ветвления слияния
+        other = 3 - seq['trace']   # 2 при измерении S, 1 при N
+        fresh.pop('trace_0', None)
+        fresh.pop('trc_0_data', None)
+        fresh.pop(f'trace_{other}', None)
+        fresh.pop(f'trc_{other}_data', None)
+
+        existing = None
+        if os.path.exists(path):
+            try:
+                with open(path, encoding='utf-8') as f:
+                    loaded = json.load(f)
+                if isinstance(loaded, dict):
+                    existing = loaded
+            except (OSError, json.JSONDecodeError) as exc:
+                # Нечитаемый снимок не должен ронять измерение:
+                # файл перезаписывается целиком
+                print(f'[M1] снимок {path} не читается, перезаписываю: {exc}')
+
+        if existing is None:
+            payload = fresh
+        else:
+            payload = existing
+            # Файлы старой версии могли содержать основную трассу —
+            # вычищаем. Ключи чужой трассы из existing не удаляем:
+            # fresh их не содержит, update() их сохранит как есть.
+            payload.pop('trace_0', None)
+            payload.pop('trc_0_data', None)
+            payload.update(fresh)
+
+        try:
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(payload, f, ensure_ascii=False, indent=1)
+        except OSError as exc:
+            print(f'[M1] снимок {path} не записан: {exc}')
