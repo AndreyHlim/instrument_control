@@ -1,3 +1,4 @@
+from constants import DETECTORS_FSVA
 from gui.styles import Style
 
 """Схема секции метода измерений 1.
@@ -38,18 +39,50 @@ SECTION_M1_BOTTOM = [
         'label': None,
         'type': 'hbox',
         'items': [
+            {
+                'type': 'label',
+                'key': 'lbl_det_s_meas',
+                'text': 'Детекторы: S',
+            },
+            {
+                'type': 'combo',
+                'key': 'm1_det_s',
+                'style': Style.COMBO_BOX,
+                'items': list(DETECTORS_FSVA),
+                'value': list(DETECTORS_FSVA)[1],
+            },
+            {
+                'type': 'label',
+                'key': 'lbl_det_n_meas',
+                'text': 'N',
+                'align': 'right',
+            },
+            {
+                'type': 'combo',
+                'key': 'm1_det_n',
+                'style': Style.COMBO_BOX,
+                'items': list(DETECTORS_FSVA),
+                'value': list(DETECTORS_FSVA)[1],
+            },
+        ]
+    },
+    {
+        'label': None,
+        'type': 'hbox',
+        'items': [
             {'type': 'button', 'key': 'm1_s', 'text': 'S',
              'style': Style.H_20, 'stretch': 1},
             {'type': 'button', 'key': 'm1_n', 'text': 'N',
              'style': Style.H_20, 'stretch': 1},
             {'type': 'button', 'key': 'm1_stop', 'text': 'Стоп',
              'style': Style.H_20, 'stretch': 1},
-            {'type': 'double', 'key': 'm1_accum', 'min': 1, 'max': 999,
+            {'type': 'double', 'key': 'm1_accum', 'min': 1, 'max': 100,
              'decimals': 0, 'value': 10, 'style': Style.SPIN_BOX,
              'stretch': 1},
-            {'type': 'checkbox', 'key': 'm1_sel_only', 'text': 'Select'},
+            {'type': 'checkbox', 'key': 'm1_sel_only', 'text': 'Select',
+             'stretch': 1},
             {'type': 'checkbox', 'key': 'm1_screens', 'text': 'Screen',
-             'value': True},
+             'value': True, 'stretch': 1},
         ],
     },
 ]

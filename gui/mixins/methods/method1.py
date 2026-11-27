@@ -1,11 +1,12 @@
 import os
 from bisect import bisect_left
 
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtWidgets import (QAbstractItemView, QFileDialog, QHeaderView,
                              QMessageBox, QSizePolicy, QTableWidget,
                              QTableWidgetItem)
 
+from constants import DETECTORS_FSVA, TRACE_ON
 from gui.controls.methods.method_1 import SECTION_M1_BOTTOM
 
 
@@ -42,6 +43,18 @@ class Method1Mixin:
     параллельный список _m1_freqs — мера истины по числам (bisect),
     тексты ячеек — только отображение. Дубликаты частот не добавляются.
     """
+    # --------- Измерения СИГНАЛОВ и ШУМОВ -----------------------
+
+    _M1_SEQ_CFG = {
+        'S': dict(col=1, trace=1, acc='Максимум',
+                  det_key='m1_det_s',
+                  title='Измерить сигналы',
+                  done='Измерения сигналов завершены'),
+        'N': dict(col=2, trace=2, acc='Средний',
+                  det_key='m1_det_n',
+                  title='Измерить шумы',
+                  done='Измерения шумов завершены'),
+    }
 
     def settings_method_1(self) -> None:
         """Собрать содержимое секции: таблица, нижний ряд, привязки.
@@ -52,6 +65,8 @@ class Method1Mixin:
         """
         self._m1_freqs: list[float] = []
         self._m1_table = M1Table(0, 3)
+        self._m1_seq: dict | None = None   # активная последовательность S
+        self._m1_seq_stop = False
         self._m1_table.setSizePolicy(QSizePolicy.Policy.Expanding,
                                      QSizePolicy.Policy.Expanding)
         self._setup_m1_table()
@@ -80,7 +95,7 @@ class Method1Mixin:
         vh.setHighlightSections(False)   # номер строки не жирнеет
         vh.setMinimumSectionSize(18)
         vh.setDefaultSectionSize(18)
-        t.setMinimumHeight(300)
+        t.setMinimumHeight(400)
         t.cellDoubleClicked.connect(self._m1_on_cell_double_clicked)
         t.delete_requested.connect(self._m1_delete_selected)
 
@@ -259,6 +274,9 @@ class Method1Mixin:
 
     def _m1_delete_selected(self) -> None:
         """Delete в таблице: удалить выделенные строки после подтверждения."""
+        if self._m1_seq is not None:
+            return   # во время измерения таблицу не трогаем
+
         rows = sorted({i.row() for i in self._m1_table.selectedIndexes()},
                       reverse=True)
         if not rows:
@@ -421,11 +439,306 @@ class Method1Mixin:
     def _m1_search_clicked(self) -> None:
         """Посчитать тактовую — поведение будет описано позже."""
 
+    # --------- Измерения СИГНАЛОВ -----------------------
     def _m1_s_clicked(self) -> None:
-        """Измерить сигналы — поведение будет описано позже."""
+        """Измерить сигналы: максимум по N развёрткам в трассе 1."""
+        self._m1_start_seq('S')
 
     def _m1_n_clicked(self) -> None:
-        """Измерить шумы — поведение будет описано позже."""
+        """Измерить шумы: детектор RMS, среднее по N развёрткам в трассе 2."""
+        self._m1_start_seq('N')
+
+    def _m1_start_seq(self, kind: str) -> None:
+        """Общий запуск последовательности измерений S/N.
+
+        Схема едина: Single, перестройка CF, пакет из N развёрток
+        (кадр на каждую), уровень из буфера доп. трассы в столбец.
+        Отличия S/N — в _M1_SEQ_CFG; для N дополнительно ставится
+        детектор RMS (и возвращается по завершении).
+        """
+        cfg = self._M1_SEQ_CFG[kind]
+        if getattr(self, '_m1_seq', None) is not None:
+            return
+        if self._m1_table.rowCount() == 0:
+            QMessageBox.information(self, 'Метод измерений 1',
+                                    'Таблица пуста — измерять нечего.')
+            return
+        if self._trace_worker is None:
+            QMessageBox.warning(self, 'Метод измерений 1',
+                                'Анализатор не подключён.')
+            return
+        sel_only = self.sec_method_1.widgets['m1_sel_only'].isChecked()
+        if sel_only:
+            rows = sorted({i.row() for i in self._m1_table.selectedIndexes()})
+            if not rows:
+                QMessageBox.information(
+                    self, 'Метод измерений 1',
+                    'Галочка «Select» стоит, но строки не выделены.')
+                return
+        else:
+            rows = list(range(self._m1_table.rowCount()))
+        if not self._m1_confirm(kind):
+            return
+
+        self._m1_seq_stop = False
+        self._m1_seq = {'kind': kind, 'col': cfg['col'], 'trace': cfg['trace'],
+                        'rows': rows, 'idx': 0, 'freq_hz': None,
+                        'phase': 'idle', 'watchdog': None,
+                        'det_saved': self.combo_det.currentText(),
+                        'radio_count': self.radio_count.isChecked(),
+                        'trc_saved': {
+                            t: (getattr(self, f'trc_{t}_on').currentText(),
+                                getattr(self, f'trc_{t}_acc').currentText())
+                            for t in (1, 2)}}
+        self._m1_seq_lock_ui(True)
+        # Блокируем элементы управления анализатором
+        self._set_analyzer_controls_enabled(False)
+        # Кнопки подключения/отключения — тоже под замок:
+        # разрыв соединения посреди прогона оставит прибор в Single
+        # без шансов на восстановление
+        if getattr(self, 'but_analyzer_conn', None) is not None:
+            self.but_analyzer_conn.setEnabled(False)
+
+        self._ensure_unpaused()
+
+        # Single — явной командой: иначе INIT;*OPC? в Continuous
+        # возвращается мгновенно и синхронизации нет
+        self._send_cmd('sweep_mode:single')
+        self._set_checked(self.radio_single, True)
+        self._set_checked(self.radio_count, False)
+        self._update_sweep_init()
+
+        # Детектор измерения — из комбобокса этого типа измерений;
+        # сохранённый детектор прибора вернём в _m1_finish
+        det_name = self.sec_method_1.widgets[cfg['det_key']].currentText()
+        det_code = DETECTORS_FSVA.get(det_name.strip())
+        if det_code:
+            self._send_cmd(f'det_set:{det_code}')
+
+        # Доп. трасса: включить и выбрать режим накопления (чисто GUI)
+        trc_on = getattr(self, f'trc_{cfg["trace"]}_on')
+        trc_acc = getattr(self, f'trc_{cfg["trace"]}_acc')
+        trc_acc.blockSignals(True)
+        trc_acc.setCurrentText(cfg['acc'])
+        trc_acc.blockSignals(False)
+        trc_on.blockSignals(True)
+        trc_on.setCurrentText(TRACE_ON)
+        trc_on.blockSignals(False)
+        self._acc_clear(cfg['trace'])
+        self._update_acc_legend()
+
+        # Основную трассу скрыть на время измерения: сигнал чекбокса
+        # сам вызовет on_main_visible_changed(False) — кривая спрячется,
+        # легенда и маркеры пересоберутся. Прибору ничего не шлём.
+        # На накопление скрытие не влияет: буферы копятся из кадров
+        # независимо от видимости основной кривой.
+        self.chk_main_visible.setChecked(False)
+
+        self._trace_worker.state_ready.connect(self._m1_on_frame)
+        self._trace_worker.sweeps_done.connect(self._m1_on_sweeps_done)
+        QTimer.singleShot(0, self._m1_next_frequency)
+
+    def _m1_confirm(self, kind: str) -> bool:
+        """Подтверждение и сводка текущих настроек измерения."""
+        cfg = self._M1_SEQ_CFG[kind]
+        w = self.sec_method_1.widgets
+        n = int(w['m1_accum'].value())
+        span_hz = self._freq_text_to_hz(self.label_span)
+        span_str = self._format_freq(span_hz) if span_hz is not None else '—'
+        text = (f'Режим {cfg["title"]}.\n\n'
+                f'Накоплений:\t{n}\n'
+                f'Детектор:\t{w[cfg["det_key"]].currentText() or "—"}\n'
+                f'RBW/VBW =\t{self._rbw_str or "—"}/{self._vbw_str or "—"}\n'
+                f'Span =\t\t{span_str}\n'
+                f'Аттенюатор:\t{self.label_atten.text().strip() or "—"} дБ\n'
+                f'Предусилитель:\t{self.combo_preamp.currentText() or "—"}\n\n'
+                'Приступить?')
+        return QMessageBox.question(
+            self, 'Метод измерений 1', text) is QMessageBox.StandardButton.Yes
+
+    def _m1_on_sweeps_done(self) -> None:
+        seq = self._m1_seq
+        if seq is None or seq['phase'] != 'sweep':
+            return
+        if self._m1_seq_stop:
+            self._m1_finish()
+            return
+        seq['phase'] = 'read'
+
+    def _m1_next_frequency(self) -> None:
+        """Очередная частота: только set_cf."""
+        seq = self._m1_seq
+        if seq is None:
+            return
+        if self._m1_seq_stop or seq['idx'] >= len(seq['rows']):
+            self._m1_finish(done=True)
+            return
+        row = seq['rows'][seq['idx']]
+        hz = self._m1_freqs[row] * 1e6      # таблица хранит МГц
+        seq['freq_hz'] = hz
+        seq['phase'] = 'tune'
+        self._send_cmd(f'set_cf:{hz:.0f}')
+        self._m1_start_watchdog()
+
+    def _m1_on_frame(self, state) -> None:
+        """Полные кадры ведут фазы tune/sweep/read (quick-кадры мимо).
+
+        tune: ждём кадр с подтверждённым центром → очищаем буфер
+        трассы 1 и ставим пакет развёрток. sweep: кадры пакета
+        накапливает буфер, сами они для машины не действия. read:
+        первый полный кадр после sweeps_done — буфер готов, пишем
+        уровень и переходим к следующей частоте.
+        """
+        seq = self._m1_seq
+        if seq is None:
+            return
+        if not state.freqs or not state.levels:
+            return   # quick_state или пустой кадр — для фаз не годится
+        if self._m1_seq_stop:
+            self._m1_finish()
+            return
+
+        if seq['phase'] == 'tune':
+            center = state.center
+            if center is not None:
+                center *= 1e6   # из воркера приходит в МГц → в Гц
+            else:
+                center = (state.freqs[0] + state.freqs[-1]) / 2
+            span = abs(state.freqs[-1] - state.freqs[0])
+            tol = max(1.0, span * 1e-6)
+            if abs(center - seq['freq_hz']) > tol:
+                return   # ещё старое окно — ждём
+            self._acc_clear(seq['trace'])
+            seq['phase'] = 'sweep'
+            n = int(self.sec_method_1.widgets['m1_accum'].value())
+            self._trace_worker.send_command(f'sweep_batch:{n}')
+            return
+
+        if seq['phase'] == 'read':
+            freqs, levels = self._trace_data_for_peak(seq['trace'] + 1)
+            if freqs is None or levels is None or not len(levels):
+                return
+            amp = self._amp_at_freq(seq['freq_hz'], levels, freqs)
+            row = seq['rows'][seq['idx']]
+            it = self._m1_table.item(row, seq['col'])
+            if it is not None:
+                it.setText('' if amp is None else self._m1_fmt_amp(amp))
+            seq['idx'] += 1
+            seq['phase'] = 'idle'
+            QTimer.singleShot(0, self._m1_next_frequency)
+
+    def _m1_start_watchdog(self) -> None:
+        """Таймер сбоя на весь шаг частоты: tune + N кадров."""
+        seq = self._m1_seq
+        old = seq.get('watchdog')
+        if old is not None:
+            old.stop()
+            old.deleteLater()
+        n = int(self.sec_method_1.widgets['m1_accum'].value())
+        sec = self._m1_sweeptime_sec() or 0.1
+        timeout_ms = max(10_000, int((n + 2) * sec * 1000 * 3) + 5_000)
+        timer = QTimer(self)
+        timer.setSingleShot(True)
+        timer.setInterval(timeout_ms)
+        timer.timeout.connect(self._m1_watchdog_fired)
+        seq['watchdog'] = timer
+        timer.start()
+
+    def _m1_sweeptime_sec(self) -> float | None:
+        """Время развёртки из метки ('10 мс', '1.5 с') в секундах."""
+        mult = {'с': 1.0, 'мс': 1e-3, 'мкс': 1e-6, 'нс': 1e-9}
+        parts = self.label_sweeptime.text().strip().split()
+        if len(parts) != 2 or parts[1] not in mult:
+            return None
+        try:
+            val = float(parts[0].replace(',', '.'))
+        except ValueError:
+            return None
+        return val * mult[parts[1]]
+
+    def _m1_watchdog_fired(self) -> None:
+        if self._m1_seq is not None:
+            QMessageBox.warning(self, 'Метод измерений 1',
+                                'Измерение не завершилось (таймаут).')
+            self._m1_finish()
 
     def _m1_stop_clicked(self) -> None:
-        """Остановить измерения — поведение будет описано позже."""
+        """Стоп: прервать последовательность. Восстанавливать нечего —
+        на приборе менялась только частота."""
+        if self._m1_seq is not None:
+            self._m1_seq_stop = True
+            self._m1_finish()
+
+    def _m1_finish(self, done: bool = False) -> None:
+        seq, self._m1_seq = self._m1_seq, None
+        self._m1_seq_stop = False
+        if seq is None:
+            return
+        wd = seq.get('watchdog')
+        if wd is not None:
+            wd.stop()
+            wd.deleteLater()
+        worker = self._trace_worker
+        if worker is not None:
+            for sig, slot in ((worker.sweeps_done, self._m1_on_sweeps_done),
+                              (worker.state_ready, self._m1_on_frame)):
+                try:
+                    sig.disconnect(slot)
+                except TypeError:
+                    pass
+        self._m1_seq_lock_ui(False)
+        self._set_analyzer_controls_enabled(True)
+        if getattr(self, 'but_analyzer_conn', None) is not None:
+            self.but_analyzer_conn.setEnabled(True)
+
+        # Единственное приборное изменение сверх CF — режим развёртки:
+        # возвращаем его явно (иначе INIT не ждёт развёртки в будущем
+        # прогоне, а экран сейчас замер бы в Single)
+        if seq['radio_count']:
+            self._send_cmd('sweep_mode:cont')
+        else:
+            self._send_cmd('sweep_mode:single')
+        self._set_checked(self.radio_count, seq['radio_count'])
+        self._set_checked(self.radio_single, not seq['radio_count'])
+        self._update_sweep_init()
+
+        # Детектор прибора — вернуть то, что было до прогона
+        code = DETECTORS_FSVA.get(seq['det_saved'])
+        if code:
+            self._send_cmd(f'det_set:{code}')
+        else:
+            print('[M1] детектор до измерения не определён, '
+                  f'на приборе остался {seq["det_saved"] or "?"}')
+
+        # Трассы 1/2 — вернуть то, что было до прогона. Сигналы не
+        # глушим: за комбобоксами команд прибору нет, а внутренняя
+        # логика накопления должна узнать о выключении трассы.
+        # Буферы очищаем: если трасса возвращается включённой, её
+        # накопление должно начаться с чистого листа, а не продолжать
+        # измерные максимумы/средние.
+        for t, (on_txt, acc_txt) in seq['trc_saved'].items():
+            getattr(self, f'trc_{t}_on').setCurrentText(on_txt)
+            getattr(self, f'trc_{t}_acc').setCurrentText(acc_txt)
+            self._acc_clear(t)
+        self._update_acc_legend()
+
+        # Основная трасса — на экран независимо от того, что было
+        # до прогона (ваше требование: всегда True, без сохранения)
+        self.chk_main_visible.setChecked(True)
+
+        if done:
+            QMessageBox.information(
+                self, 'Метод измерений 1',
+                f'{self._M1_SEQ_CFG[seq["kind"]]["done"]}: '
+                f'обработано частот — {len(seq["rows"])}.')
+
+    def _m1_seq_lock_ui(self, locked: bool) -> None:
+        w = self.sec_method_1.widgets
+        for key in ('m1_open', 'm1_save', 'm1_clear',
+                    'm1_add_cf', 'm1_add_mrk', 'm1_add_df', 'm1_search',
+                    'm1_s', 'm1_n', 'm1_accum'):
+            w[key].setEnabled(not locked)
+        if not locked:
+            # Зависимые кнопки: их активность определяется состоянием
+            # (маркерами), а не снятием блокировки прогона
+            self._m1_markers_state_changed()

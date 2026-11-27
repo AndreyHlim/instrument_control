@@ -25,6 +25,7 @@ class TraceWorker(QObject):
 
     state_ready = pyqtSignal(object)
     error_occurred = pyqtSignal(str)
+    sweeps_done = pyqtSignal()      # пакет sweep_batch исполнен
 
     def __init__(self, analyzer: RS_FSVA3013):
         """Подготовить воркер к запуску.
@@ -367,6 +368,21 @@ class TraceWorker(QObject):
             ok = self._analyzer.imm_emit()
             if not ok:
                 print('[WORKER] INIT не подтверждён (*OPC?)')
+        elif cmd.startswith('sweep_batch:'):
+            n = int(cmd.split('sweep_batch:', 1)[1])
+            for _ in range(n):
+                if not self._running:
+                    break           # shutdown не тащит за собой пакет
+                ok = self._analyzer.imm_emit()
+                if not ok:
+                    print('[WORKER] INIT не подтверждён (*OPC?)')
+                st = DeviceState()
+                st.levels = self._analyzer.get_trace_data_lvl(1)
+                st.freqs = self._analyzer.get_trace_data_freq(1, dim=Dim.Hz)
+                if st.levels:
+                    st.marker_level = float(max(st.levels))
+                self.state_ready.emit(st)   # кадр = одна завершённая развёртка
+            self.sweeps_done.emit()
         elif cmd == 'auto_max_on':
             self._analyzer.active_mrk().peak_track(2)
         elif cmd == 'auto_max_off':
