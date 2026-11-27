@@ -158,15 +158,17 @@ class PlotActionsMixin:
         for n in (1, 2):
             mode = self._acc_mode(n)
             arr = fqs = None
-            if mode != TRACE_OFF:
-                entry = getattr(self, '_acc_traces', {}).get(n)
-                if entry is not None:
-                    arr = entry.get('arr')
-                    fqs = entry.get('freqs')
+            entry = getattr(self, '_acc_traces', {}).get(n)
+            if mode != TRACE_OFF and entry is not None:
+                arr = entry.get('arr')
+                fqs = entry.get('freqs')
             traces[n] = {
                 'on': mode != TRACE_OFF,
                 'mode': mode,
                 'acc_kind': self._acc_kind_text(n),
+                # Детектор трассы: свой кэш, иначе — детектор прибора
+                'det': (entry.get('det') if entry is not None else None)
+                or self._main_trace_det,
                 'arr': arr if arr is not None and fqs is not None else None,
                 'freqs': ([self._round_hz(f) for f in fqs]
                           if fqs is not None else None),
@@ -260,9 +262,12 @@ class PlotActionsMixin:
         for n in (1, 2):
             t = d['traces'][n]
             if t['on']:
+                det_n = (DETECTORS_FSVA_REV.get(t['det'], t['det'])
+                         if t['det'] else None)
                 suffix = ' (hold)' if t['mode'] == TRACE_HOLD else ''
                 lines.append(
-                    f'Трасса {n}: {det_txt}, {t["acc_kind"] or "—"}{suffix}')
+                    f'Трасса {n}: {det_n or det_txt}, '
+                    f'{t["acc_kind"] or "—"}{suffix}')
             else:
                 lines.append(f'Трасса {n}: отсутствует')
         for n in (1, 2):
@@ -318,6 +323,7 @@ class PlotActionsMixin:
             traces[f'trace_{n}'] = {
                 'on': t['on'],
                 'trc_det': det,
+                'trace_det': t['det'],
                 'trc_acc': (ADD_TRACE_MODE.get(t['acc_kind'])
                             if t['acc_kind'] else None),
             }
@@ -535,7 +541,8 @@ class PlotActionsMixin:
             (t for t, v in ADD_TRACE_MODE.items() if v == TRACE_HOLD), None)
         for n in (1, 2):
             self._acc_clear(n)
-            on = bool((p.get(f'trace_{n}') or {}).get('on'))
+            t = p.get(f'trace_{n}') or {}
+            on = bool(t.get('on'))
             combo_on = getattr(self, f'trc_{n}_on', None)
             if combo_on is not None:
                 combo_on.setCurrentText(TRACE_ON if on else TRACE_OFF)
@@ -548,6 +555,10 @@ class PlotActionsMixin:
             if data:
                 self._load_hold_trace(
                     n, [row[0] for row in data], [row[1] for row in data])
+            # Детектор трассы: новое поле, у старых снимков — детектор
+            # прибора на момент снимка
+            self._acc_entries()[n]['det'] = (
+                t.get('trace_det') or self._main_trace_det)
         self._update_acc_legend()
 
     def _load_markers(self, p: dict) -> None:

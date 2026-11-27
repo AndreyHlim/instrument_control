@@ -62,7 +62,8 @@ class AccTracesMixin:
         """Структура накопления обеих трасс (создаётся один раз)."""
         if not hasattr(self, '_acc_traces'):
             self._acc_traces = {
-                num: {'curve': None, 'arr': None, 'count': 0, 'freqs': None}
+                num: {'curve': None, 'arr': None, 'count': 0, 'freqs': None,
+                      'det': None}
                 for num in (1, 2)
             }
         return self._acc_traces
@@ -78,6 +79,7 @@ class AccTracesMixin:
         entry['arr'] = None
         entry['count'] = 0
         entry['freqs'] = None
+        entry['det'] = None
         if entry['curve'] is not None:
             self.plotWidget.removeItem(entry['curve'])
             entry['curve'] = None
@@ -211,7 +213,11 @@ class AccTracesMixin:
                 else:
                     entry['count'] += 1
                     entry['arr'] += (levels - entry['arr']) / entry['count']
+
                 entry['freqs'] = state.freqs   # сетка этого буфера
+                # Детектор буфера: во время прогона S/N кэш _main_trace_det
+                # уже отражает измерный детектор (quick-опрос после det_set)
+                entry['det'] = self._main_trace_det
 
                 if entry['curve'] is None:
                     entry['curve'] = self.plotWidget.plot(
@@ -281,7 +287,7 @@ class AccTracesMixin:
                     f'<span style="color:{Style.MAIN_TRACE_COLOR};">'
                     f'{", ".join(parts)}</span>')
 
-        # --- Строки доп. трасс ---
+        # --- Строки доп. трасс: детектор + накопление, как у главного ---
         for num in (1, 2):
             mode = self._acc_mode(num)
             if mode == TRACE_OFF:
@@ -289,10 +295,15 @@ class AccTracesMixin:
             combo = getattr(self, f'trc_{num}_acc', None)
             kind = ADD_TRACE_MODE.get(
                 combo.currentText(), '?') if combo is not None else '?'
+            det = self._acc_entries()[num].get('det') or self._main_trace_det
+            parts = []
+            if det:
+                parts.append(det.lower().capitalize())
+            parts.append(kind.capitalize())
             suffix = ' (hold)' if mode == TRACE_HOLD else ''
             lines.append(
                 f'<span style="color:{self.ACC_TRACE_PEN[num]};">'
-                f'{kind.capitalize()}{suffix}</span>')
+                f'{", ".join(parts)}{suffix}</span>')
 
         ti = self._acc_legend.textItem
         ti.setHtml('<br>'.join(lines))
@@ -324,6 +335,7 @@ class AccTracesMixin:
         entry['arr'] = None
         entry['count'] = 0
         entry['freqs'] = None
+        entry['det'] = None
 
     def refresh_acc_trace(self, num: int) -> None:
         """Принудительный сброс накопления трассы num (кнопка «обновить»).
