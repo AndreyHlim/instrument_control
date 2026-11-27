@@ -63,7 +63,7 @@ class AccTracesMixin:
         if not hasattr(self, '_acc_traces'):
             self._acc_traces = {
                 num: {'curve': None, 'arr': None, 'count': 0, 'freqs': None,
-                      'det': None}
+                      'det': None, 'kind': None}
                 for num in (1, 2)
             }
         return self._acc_traces
@@ -80,6 +80,7 @@ class AccTracesMixin:
         entry['count'] = 0
         entry['freqs'] = None
         entry['det'] = None
+        entry['kind'] = None
         if entry['curve'] is not None:
             self.plotWidget.removeItem(entry['curve'])
             entry['curve'] = None
@@ -103,6 +104,9 @@ class AccTracesMixin:
             self._acc_clear(num)
             self._markers_to_main_trace(num)
         elif self._acc_mode(num) == TRACE_ON:
+            # Явный вид (метод 1 или загруженный снимок) теряет силу:
+            # управление трассой возвращено комбобоксам
+            self._acc_entries()[num]['kind'] = None
             self._acc_reset(num)
         # Hold — ничего делать не нужно: накопление заморожено циклом
         self._update_acc_legend()
@@ -144,6 +148,9 @@ class AccTracesMixin:
         одном массиве нельзя.
         """
         mode = self._acc_mode(num)
+        # Ручная смена типа накопления: явный вид (метод 1 или снимок)
+        # больше не действует — управление возвращено комбобоксу
+        self._acc_entries()[num]['kind'] = None
         if mode != TRACE_ON:
             combo_on = getattr(self, f'trc_{num}_on', None)
             if combo_on is not None:
@@ -199,11 +206,17 @@ class AccTracesMixin:
             combo = getattr(self, f'trc_{num}_acc', None)
             acc_kind = ADD_TRACE_MODE.get(
                 combo.currentText()) if combo is not None else None
+            if entry.get('kind') is not None:
+                # Явный вид накопления (метод 1, S/N): комбобокс трассы
+                # не содержит текстов TRACE_ACC — вид берётся отсюда
+                acc_kind = entry['kind']
             if acc_kind is None:
                 continue
 
             if mode == TRACE_ON:
-                if entry['arr'] is None or len(entry['arr']) != len(levels):
+                if acc_kind == 'writ' or entry['arr'] is None \
+                        or len(entry['arr']) != len(levels):
+                    # Clear Write: буфер переписывается каждым кадром
                     entry['arr'] = levels.copy()
                     entry['count'] = 1
                 elif acc_kind == 'max':
@@ -215,8 +228,6 @@ class AccTracesMixin:
                     entry['arr'] += (levels - entry['arr']) / entry['count']
 
                 entry['freqs'] = state.freqs   # сетка этого буфера
-                # Детектор буфера: во время прогона S/N кэш _main_trace_det
-                # уже отражает измерный детектор (quick-опрос после det_set)
                 entry['det'] = self._main_trace_det
 
                 if entry['curve'] is None:
@@ -292,10 +303,13 @@ class AccTracesMixin:
             mode = self._acc_mode(num)
             if mode == TRACE_OFF:
                 continue
-            combo = getattr(self, f'trc_{num}_acc', None)
-            kind = ADD_TRACE_MODE.get(
-                combo.currentText(), '?') if combo is not None else '?'
-            det = self._acc_entries()[num].get('det') or self._main_trace_det
+            entry = self._acc_entries()[num]
+            kind = entry.get('kind')
+            if kind is None:
+                combo = getattr(self, f'trc_{num}_acc', None)
+                kind = ADD_TRACE_MODE.get(
+                    combo.currentText(), '?') if combo is not None else '?'
+            det = entry.get('det') or self._main_trace_det
             parts = []
             if det:
                 parts.append(det.lower().capitalize())
@@ -329,7 +343,9 @@ class AccTracesMixin:
         """Сбросить буфер трассы num, не трогая кривую и режим.
 
         Кривая продолжает показывать прежние данные до первого нового
-        кадра — так ведут себя и существующие пути сброса.
+        кадра — так ведут себя и существующие пути сброса. Явный вид
+        накопления ('kind') не трогается: во время прогона метода 1
+        он должен пережить смену X-диапазона.
         """
         entry = self._acc_entries()[num]
         entry['arr'] = None

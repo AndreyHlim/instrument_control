@@ -24,7 +24,6 @@ class ResultsMixin:
             layout.setContentsMargins(0, 0, 0, 0)
 
         self._results_content = QWidget()
-        self._results_content = QWidget()
         self._results_content.setMinimumHeight(200)
 
         self.sec_results = CollapsibleSection("Результаты измерений")

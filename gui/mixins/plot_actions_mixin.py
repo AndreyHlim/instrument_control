@@ -166,6 +166,7 @@ class PlotActionsMixin:
                 'on': mode != TRACE_OFF,
                 'mode': mode,
                 'acc_kind': self._acc_kind_text(n),
+                'acc_code': entry.get('kind') if entry is not None else None,
                 # Детектор трассы: свой кэш, иначе — детектор прибора
                 'det': (entry.get('det') if entry is not None else None)
                 or self._main_trace_det,
@@ -203,7 +204,15 @@ class PlotActionsMixin:
         }
 
     def _acc_kind_text(self, num: int) -> str:
-        """Текст типа накопления трассы num из её комбобокса."""
+        """Текст вида накопления трассы num для экспорта/снимков.
+
+        Явный вид (kind — метод 1 или загруженный снимок) — короткая
+        форма 'Max'/'Min'/'Aver'/'Writ', как в легенде. Иначе — текст
+        комбобокса трассы, как раньше.
+        """
+        entry = getattr(self, '_acc_traces', {}).get(num)
+        if entry is not None and entry.get('kind') is not None:
+            return entry['kind'].capitalize()
         combo = getattr(self, f'trc_{num}_acc', None)
         return combo.currentText() if combo is not None else ''
 
@@ -506,6 +515,12 @@ class PlotActionsMixin:
             # прибора на момент снимка
             self._acc_entries()[n]['det'] = (
                 t.get('trace_det') or self._main_trace_det)
+            # Вид накопления из снимка: код вида ('writ'/'max'/'min'/
+            # 'aver') кладётся в kind — легенда покажет короткое имя
+            # метода, которым снимок снят, а не состояние комбобокса
+            code = t.get('trc_acc')
+            if code in ADD_TRACE_MODE.values():
+                self._acc_entries()[n]['kind'] = code
         self._update_acc_legend()
 
     def _load_markers(self, p: dict) -> None:
@@ -540,12 +555,13 @@ class PlotActionsMixin:
         traces = {}
         for n in (1, 2):
             t = d['traces'][n]
+            acc_code = t.get('acc_code') or (
+                ADD_TRACE_MODE.get(t['acc_kind']) if t['acc_kind'] else None)
             traces[f'trace_{n}'] = {
                 'on': t['on'],
                 'trc_det': det,
                 'trace_det': t['det'],
-                'trc_acc': (ADD_TRACE_MODE.get(t['acc_kind'])
-                            if t['acc_kind'] else None),
+                'trc_acc': acc_code,
             }
         markers = {}
         for n in (1, 2):

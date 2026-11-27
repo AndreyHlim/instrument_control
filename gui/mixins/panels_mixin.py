@@ -19,7 +19,7 @@ class PanelsMixin:
     Левая — секции управления (CollapsibleSection), средняя — графики
     (настройка конкретного графика живёт в PlotMixin), правая — заготовка.
     """
-    RIGHT_PANEL_MIN_W = 300   # развёрнутая панель
+    RIGHT_PANEL_MIN_W = 360   # развёрнутая панель
     RIGHT_PANEL_MAX_W = 360
 
     def settings_panels(self) -> None:

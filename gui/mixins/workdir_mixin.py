@@ -14,7 +14,7 @@ class WorkDirMixin:
     """Миксин: глобальная рабочая директория программы.
 
     Хранит путь, отображает его на правой панели (tb_workdir + кнопка
-    but_workdir), персистентен через QSettings. Дефолт — DEFAULT_PATH
+    but_workdir), Дефолт — DEFAULT_PATH
     из constants; если он не существует на диске, используется
     домашний каталог пользователя.
 
@@ -22,10 +22,6 @@ class WorkDirMixin:
     стартовая папка диалогов сохранения/загрузки и любых будущих
     действий методов измерений.
     """
-
-    _SETTINGS_ORG = 'Measurements'
-    _SETTINGS_APP = 'AnalyzerGUI'
-    _SETTINGS_KEY = 'work_dir'
 
     def preparation_workdir(self) -> None:
         """Определить рабочую директорию на запуск (вызывается из main).

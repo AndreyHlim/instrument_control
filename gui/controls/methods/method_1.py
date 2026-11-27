@@ -1,4 +1,4 @@
-from constants import DETECTORS_FSVA
+from constants import DETECTORS_FSVA, TRACE_ACC
 from gui.styles import Style
 
 """Схема секции метода измерений 1.
@@ -36,13 +36,13 @@ SECTION_M1 = [
 
 SECTION_M1_BOTTOM = [
     {
-        'label': None,
+        'label': 'S:',
         'type': 'hbox',
         'items': [
             {
                 'type': 'label',
-                'key': 'lbl_det_s_meas',
-                'text': 'Детекторы: S',
+                'key': 'm1_lbl_det_s',
+                'text': 'детектор:',
             },
             {
                 'type': 'combo',
@@ -53,9 +53,26 @@ SECTION_M1_BOTTOM = [
             },
             {
                 'type': 'label',
-                'key': 'lbl_det_n_meas',
-                'text': 'N',
-                'align': 'right',
+                'key': 'lbl_s_trc_acc',
+                'text': 'накопление:',
+            },
+            {
+                'type': 'combo',
+                'key': 'm1_acc_s',
+                'style': Style.COMBO_BOX,
+                'items': list(TRACE_ACC)[:4],
+                'value': 'Max Hold',
+            },
+        ],
+    },
+    {
+        'label': 'N:',
+        'type': 'hbox',
+        'items': [
+            {
+                'type': 'label',
+                'key': 'm1_lbl_det_n',
+                'text': 'детектор:',
             },
             {
                 'type': 'combo',
@@ -63,6 +80,18 @@ SECTION_M1_BOTTOM = [
                 'style': Style.COMBO_BOX,
                 'items': list(DETECTORS_FSVA),
                 'value': list(DETECTORS_FSVA)[1],
+            },
+            {
+                'type': 'label',
+                'key': 'lbl_n_trc_acc',
+                'text': 'накопление:',
+            },
+            {
+                'type': 'combo',
+                'key': 'm1_acc_n',
+                'style': Style.COMBO_BOX,
+                'items': list(TRACE_ACC)[:4],
+                'value': 'Max Hold',
             },
         ]
     },

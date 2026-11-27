@@ -3,14 +3,15 @@ import os
 from bisect import bisect_left
 
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+from PyQt6.QtGui import QBrush, QColor
 from PyQt6.QtWidgets import (QAbstractItemView, QFileDialog, QHeaderView,
                              QMessageBox, QSizePolicy, QTableWidget,
                              QTableWidgetItem)
 
-from constants import DETECTORS_FSVA, TRACE_HOLD, TRACE_OFF, TRACE_ON
-from PyQt6.QtGui import QBrush, QColor
-from gui.styles import Style
+from constants import (ADD_TRACE_MODE, DETECTORS_FSVA, TRACE_ACC, TRACE_HOLD,
+                       TRACE_OFF, TRACE_ON)
 from gui.controls.methods.method_1 import SECTION_M1_BOTTOM
+from gui.styles import Style
 
 
 class M1Table(QTableWidget):
@@ -49,12 +50,12 @@ class Method1Mixin:
     # --------- Измерения СИГНАЛОВ и ШУМОВ -----------------------
 
     _M1_SEQ_CFG = {
-        'S': dict(col=1, trace=1, acc='Максимум',
-                  det_key='m1_det_s',
+        'S': dict(col=1, trace=1,
+                  det_key='m1_det_s', acc_key='m1_acc_s',
                   title='Измерить сигналы',
                   done='Измерения сигналов завершены'),
-        'N': dict(col=2, trace=2, acc='Средний',
-                  det_key='m1_det_n',
+        'N': dict(col=2, trace=2,
+                  det_key='m1_det_n', acc_key='m1_acc_n',
                   title='Измерить шумы',
                   done='Измерения шумов завершены'),
     }
@@ -494,6 +495,13 @@ class Method1Mixin:
                 return
         else:
             rows = list(range(self._m1_table.rowCount()))
+        acc_text = self.sec_method_1.widgets[cfg['acc_key']] \
+            .currentText().strip()
+        if acc_text not in ADD_TRACE_MODE:
+            QMessageBox.warning(
+                self, 'Метод измерений 1',
+                f'Неизвестный метод накопления: {acc_text or "—"}')
+            return
         if not self._m1_confirm(kind):
             return
 
@@ -503,6 +511,8 @@ class Method1Mixin:
                         'rows': rows, 'idx': 0, 'freq_hz': None,
                         'phase': 'idle', 'watchdog': None,
                         'det_saved': self.combo_det.currentText(),
+                        'acc_saved': self.combo_trace_acc.currentText(),
+                        'acc_kind': ADD_TRACE_MODE[acc_text],
                         'radio_count': self.radio_count.isChecked(),
                         'trc_saved': {
                             t: (getattr(self, f'trc_{t}_on').currentText(),
@@ -535,6 +545,9 @@ class Method1Mixin:
         self._m1_seq_lock_ui(True)
         # Блокируем элементы управления анализатором
         self._set_analyzer_controls_enabled(False)
+        # Мышь над графиком — тоже под замок: пан/зум посреди прогона
+        # послали бы set_cf/set_span поверх перестройки последовательности
+        self.plotWidget.setMouseEnabled(x=False)
         # Кнопки подключения/отключения — тоже под замок:
         # разрыв соединения посреди прогона оставит прибор в Single
         # без шансов на восстановление
@@ -557,16 +570,22 @@ class Method1Mixin:
         if det_code:
             self._send_cmd(f'det_set:{det_code}')
 
-        # Доп. трасса: включить и выбрать режим накопления (чисто GUI)
+        # Доп. трасса: включить (чисто GUI). Вид накопления — явный,
+        # из комбобокса измерений: буфер программы выполняет метод сам
         trc_on = getattr(self, f'trc_{cfg["trace"]}_on')
-        trc_acc = getattr(self, f'trc_{cfg["trace"]}_acc')
-        trc_acc.blockSignals(True)
-        trc_acc.setCurrentText(cfg['acc'])
-        trc_acc.blockSignals(False)
         trc_on.blockSignals(True)
         trc_on.setCurrentText(TRACE_ON)
         trc_on.blockSignals(False)
         self._acc_clear(cfg['trace'])
+        # Явный вид — ПОСЛЕ _acc_clear (тот затирает kind в None)
+        self._acc_entries()[cfg['trace']]['kind'] = \
+            ADD_TRACE_MODE[acc_text]
+
+        # Прибор на время прогона — Clear Write: иначе Max Hold на
+        # приборе превращал бы каждый приходящий кадр в бегущий максимум,
+        # и Average буфера усреднял бы максимумы. Метод честно считает
+        # буфер по сырым кадрам.
+        self._send_cmd('trace_acc_set:Clear Write')
         self._update_acc_legend()
 
         # Основную трассу скрыть на время измерения: сигнал чекбокса
@@ -587,8 +606,9 @@ class Method1Mixin:
         n = int(w['m1_accum'].value())
         span_hz = self._freq_text_to_hz(self.label_span)
         span_str = self._format_freq(span_hz) if span_hz is not None else '—'
+        acc_text = w[cfg['acc_key']].currentText().strip()
         text = (f'Режим {cfg["title"]}.\n\n'
-                f'Накоплений:\t{n}\n'
+                f'Накоплений:\t{n}, {acc_text or "—"}\n'
                 f'Детектор:\t{w[cfg["det_key"]].currentText() or "—"}\n'
                 f'RBW/VBW =\t{self._rbw_str or "—"}/{self._vbw_str or "—"}\n'
                 f'Span =\t\t{span_str}\n'
@@ -654,7 +674,8 @@ class Method1Mixin:
             if abs(center - seq['freq_hz']) > tol:
                 return   # ещё старое окно — ждём
             self._acc_clear(seq['trace'])
-            self._m1_show_other_trace()   # ← новое
+            self._acc_entries()[seq['trace']]['kind'] = seq['acc_kind']
+            self._m1_show_other_trace()
             seq['phase'] = 'sweep'
             n = int(self.sec_method_1.widgets['m1_accum'].value())
             self._trace_worker.send_command(f'sweep_batch:{n}')
@@ -736,6 +757,7 @@ class Method1Mixin:
         self._m1_seq_lock_ui(False)
         self._m1_set_row_highlight(None)
         self._set_analyzer_controls_enabled(True)
+        self.plotWidget.setMouseEnabled(x=True)
         if getattr(self, 'but_analyzer_conn', None) is not None:
             self.but_analyzer_conn.setEnabled(True)
 
@@ -757,6 +779,14 @@ class Method1Mixin:
         else:
             print('[M1] детектор до измерения не определён, '
                   f'на приборе остался {seq["det_saved"] or "?"}')
+
+        # Накопление прибора — вернуть то, что было до прогона
+        code = TRACE_ACC.get(seq['acc_saved'])
+        if code:
+            self._send_cmd(f'trace_acc_set:{code}')
+        else:
+            print('[M1] накопление до измерения не определено, '
+                  'на приборе остался Clear Write')
 
         # Трассы 1/2 — вернуть то, что было до прогона. Сигналы не
         # глушим: за комбобоксами команд прибору нет, а внутренняя
@@ -806,7 +836,8 @@ class Method1Mixin:
         for key in ('m1_open', 'm1_save', 'm1_clear',
                     'm1_add_cf', 'm1_add_mrk', 'm1_add_df', 'm1_search',
                     'm1_s', 'm1_n', 'm1_accum',
-                    'm1_sel_only', 'm1_screens', 'm1_det_s', 'm1_det_n'):
+                    'm1_sel_only', 'm1_screens', 'm1_det_s', 'm1_det_n',
+                    'm1_acc_s', 'm1_acc_n'):
             w[key].setEnabled(not locked)
         # Секция маркеров: на время прогона глушится целиком, при
         # снятии замка возвращает штатную активность по состоянию
@@ -900,14 +931,15 @@ class Method1Mixin:
             return
         path = os.path.join(self.work_dir(),
                             f'{self._m1_file_freq(seq["freq_hz"])}.json')
-        data, det = [], None
+        data, _, acc_code = [], None, None
         if os.path.exists(path):
             try:
                 with open(path, encoding='utf-8') as f:
                     p = json.load(f)
                 if isinstance(p, dict):
                     data = p.get(f'trc_{other}_data') or []
-                    det = (p.get(f'trace_{other}') or {}).get('trace_det')
+                    desc = p.get(f'trace_{other}') or {}
+                    acc_code = desc.get('trc_acc')
             except (OSError, json.JSONDecodeError) as exc:
                 # Кривая сравнения — вспомогательная функция: её сбой
                 # не должен ронять измерение
@@ -920,9 +952,10 @@ class Method1Mixin:
             return
         self._load_hold_trace(
             other, [row[0] for row in data], [row[1] for row in data])
-        # Детектор трассы — из описателя снимка; у файлов без этого поля
-        # легенда возьмёт детектор прибора (штатный запасной источник)
-        self._acc_entries()[other]['det'] = det
+        # Вид накопления — из снимка: легенда чужой кривой покажет метод,
+        # которым он был снят
+        if acc_code in ADD_TRACE_MODE.values():
+            self._acc_entries()[other]['kind'] = acc_code
         self._update_acc_legend()
 
     def _m1_set_row_highlight(self, row: int | None) -> None:
