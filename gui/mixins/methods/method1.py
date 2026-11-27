@@ -7,7 +7,9 @@ from PyQt6.QtWidgets import (QAbstractItemView, QFileDialog, QHeaderView,
                              QMessageBox, QSizePolicy, QTableWidget,
                              QTableWidgetItem)
 
-from constants import DETECTORS_FSVA, TRACE_ON
+from constants import DETECTORS_FSVA, TRACE_HOLD, TRACE_OFF, TRACE_ON
+from PyQt6.QtGui import QBrush, QColor
+from gui.styles import Style
 from gui.controls.methods.method_1 import SECTION_M1_BOTTOM
 
 
@@ -68,6 +70,7 @@ class Method1Mixin:
         self._m1_table = M1Table(0, 3)
         self._m1_seq: dict | None = None   # активная последовательность S
         self._m1_seq_stop = False
+        self._m1_hl_row: int | None = None   # подсвеченная строка прогона
         self._m1_table.setSizePolicy(QSizePolicy.Policy.Expanding,
                                      QSizePolicy.Policy.Expanding)
         self._setup_m1_table()
@@ -96,7 +99,7 @@ class Method1Mixin:
         vh.setHighlightSections(False)   # номер строки не жирнеет
         vh.setMinimumSectionSize(18)
         vh.setDefaultSectionSize(18)
-        t.setMinimumHeight(400)
+        t.setMinimumHeight(500)
         t.cellDoubleClicked.connect(self._m1_on_cell_double_clicked)
         t.delete_requested.connect(self._m1_delete_selected)
 
@@ -616,6 +619,7 @@ class Method1Mixin:
             return
         row = seq['rows'][seq['idx']]
         hz = self._m1_freqs[row] * 1e6      # таблица хранит МГц
+        self._m1_set_row_highlight(row)
         seq['freq_hz'] = hz
         seq['phase'] = 'tune'
         self._send_cmd(f'set_cf:{hz:.0f}')
@@ -650,6 +654,7 @@ class Method1Mixin:
             if abs(center - seq['freq_hz']) > tol:
                 return   # ещё старое окно — ждём
             self._acc_clear(seq['trace'])
+            self._m1_show_other_trace()   # ← новое
             seq['phase'] = 'sweep'
             n = int(self.sec_method_1.widgets['m1_accum'].value())
             self._trace_worker.send_command(f'sweep_batch:{n}')
@@ -729,6 +734,7 @@ class Method1Mixin:
                 except TypeError:
                     pass
         self._m1_seq_lock_ui(False)
+        self._m1_set_row_highlight(None)
         self._set_analyzer_controls_enabled(True)
         if getattr(self, 'but_analyzer_conn', None) is not None:
             self.but_analyzer_conn.setEnabled(True)
@@ -872,3 +878,97 @@ class Method1Mixin:
                 json.dump(payload, f, ensure_ascii=False, indent=1)
         except OSError as exc:
             print(f'[M1] снимок {path} не записан: {exc}')
+
+        self._m1_save_png()
+
+    def _m1_show_other_trace(self) -> None:
+        """Показать чужую трассу из снимка на время прогона.
+
+        При измерении N — трасса 1 из файла '<частота>.json' (прогон S),
+        при измерении S — трасса 2 (прогон N). Режим трассы ставится
+        в Hold именно в комбобоксе РЕЖИМА (trc_{n}_on): заморозку
+        _update_acc_traces определяет по нему, комбобокс типа накопления
+        на Hold не влияет. Файла или данных в нём нет — трасса
+        выключается. Сигналы комбобокса глушатся: программная смена
+        режима не должна ни сбрасывать буферы, ни трогать маркеры.
+        """
+        seq = self._m1_seq
+        other = 3 - seq['trace']   # 1 при измерении N, 2 при измерении S
+        self._acc_clear(other)
+        combo_on = getattr(self, f'trc_{other}_on', None)
+        if combo_on is None:
+            return
+        path = os.path.join(self.work_dir(),
+                            f'{self._m1_file_freq(seq["freq_hz"])}.json')
+        data, det = [], None
+        if os.path.exists(path):
+            try:
+                with open(path, encoding='utf-8') as f:
+                    p = json.load(f)
+                if isinstance(p, dict):
+                    data = p.get(f'trc_{other}_data') or []
+                    det = (p.get(f'trace_{other}') or {}).get('trace_det')
+            except (OSError, json.JSONDecodeError) as exc:
+                # Кривая сравнения — вспомогательная функция: её сбой
+                # не должен ронять измерение
+                print(f'[M1] снимок {path} не читается: {exc}')
+
+        combo_on.blockSignals(True)
+        combo_on.setCurrentText(TRACE_HOLD if data else TRACE_OFF)
+        combo_on.blockSignals(False)
+        if not data:
+            return
+        self._load_hold_trace(
+            other, [row[0] for row in data], [row[1] for row in data])
+        # Детектор трассы — из описателя снимка; у файлов без этого поля
+        # легенда возьмёт детектор прибора (штатный запасной источник)
+        self._acc_entries()[other]['det'] = det
+        self._update_acc_legend()
+
+    def _m1_set_row_highlight(self, row: int | None) -> None:
+        """Подсветить строку row мягким жёлтым (None — снять подсветку).
+
+        Фон ставится всем трём ячейкам строки; None в BackgroundRole
+        возвращает ячейке обычный вид. Подсвеченной считается ровно
+        одна строка — индекс хранится в _m1_hl_row и не потеряется,
+        даже если ячейки перезаписывались значениями измерения.
+        """
+        t = self._m1_table
+        if self._m1_hl_row is not None and self._m1_hl_row < t.rowCount():
+            for c in range(3):
+                it = t.item(self._m1_hl_row, c)
+                if it is not None:
+                    it.setData(Qt.ItemDataRole.BackgroundRole, None)
+        self._m1_hl_row = None
+        if row is None or row >= t.rowCount():
+            return
+        brush = QBrush(QColor(Style.M1_ROW_HIGHLIGHT))
+        for c in range(3):
+            it = t.item(row, c)
+            if it is not None:
+                it.setData(Qt.ItemDataRole.BackgroundRole, brush)
+        self._m1_hl_row = row
+
+    def _m1_save_png(self) -> None:
+        """Скриншот графика рядом со снимком json (метод 1).
+
+        Сохраняется, когда на графике обе доп. трассы с данными:
+        измеряемая (её накопление из пакетов) и чужая (Hold-кривая,
+        загруженная из снимка другого прогона) — то есть ровно в момент
+        сравнения сигнал/шум. Имя '<частота>.png', как у json-снимка.
+        """
+        seq = self._m1_seq
+        if seq is None or seq['freq_hz'] is None:
+            return
+        entries = self._acc_entries()
+        if any(entries[n]['arr'] is None or entries[n]['curve'] is None
+               for n in (1, 2)):
+            return   # обе кривые сравнения на графике — редкий момент
+        path = os.path.join(self.work_dir(),
+                            f'{self._m1_file_freq(seq["freq_hz"])}.png')
+        try:
+            self.plotWidget.grab().save(path)
+        except (OSError, RuntimeError) as exc:
+            # Скриншот — вспомогательный продукт: сбой не должен
+            # ронять измерение
+            print(f'[M1] скриншот {path} не записан: {exc}')
