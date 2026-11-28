@@ -182,6 +182,9 @@ class PanelsMixin:
             section.add_inputs(schema)
             setattr(self, f'sec_method_{num}', section)
             self._method_group.append(section)
+            # Активный метод графика результатов — раскрытая секция
+            section.header_button.toggled.connect(
+                lambda checked, n=num: self._set_active_method(n, checked))
 
         # Метод 1: таблица и обработчики (Method1Mixin)
         self.settings_method_1()

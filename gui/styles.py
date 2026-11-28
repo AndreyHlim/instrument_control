@@ -22,6 +22,7 @@ PLOT_BTN_ICON_SIZE = 20
 PLOT_BTN_GAP = 4          # зазор кнопка↔рамка графика, px
 PLOT_ACTIONS_STRIP_W = PLOT_BTN_SIZE + 2 * PLOT_BTN_GAP
 COL_TOP = 24
+RES_AXIS_H = 14
 COL_SPACING = 2
 
 _ARROW = resource_path("gui/icons/combo_arrow.svg").replace("\\", "/")

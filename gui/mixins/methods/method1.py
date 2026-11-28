@@ -102,6 +102,8 @@ class Method1Mixin:
         vh.setDefaultSectionSize(18)
         t.setMinimumHeight(500)
         t.cellDoubleClicked.connect(self._m1_on_cell_double_clicked)
+        # Выделение строк мышкой — на графике результатов
+        t.itemSelectionChanged.connect(self._m1_res_update_selection)
         t.delete_requested.connect(self._m1_delete_selected)
 
     def _wire_m1_controls(self) -> None:
@@ -987,6 +989,7 @@ class Method1Mixin:
             if it is not None:
                 it.setData(Qt.ItemDataRole.BackgroundRole, brush)
         self._m1_hl_row = row
+        self._m1_res_update_selection()
 
     def _m1_save_png(self) -> None:
         """Скриншот графика рядом со снимком json (метод 1).

@@ -9,33 +9,32 @@ from PyQt6.QtWidgets import (QFileDialog, QSizePolicy, QToolButton,
 from function import resource_path
 from gui.controls.controls import CollapsibleSection
 from gui.styles import (COL_SPACING, PLOT_ACTIONS_STRIP_W, PLOT_BTN_GAP,
-                        PLOT_BTN_ICON_SIZE, PLOT_BTN_SIZE, Style,
+                        PLOT_BTN_ICON_SIZE, PLOT_BTN_SIZE, RES_AXIS_H, Style,
                         plot_background_color, plot_grid_pen)
 
 
 class ResultsMixin:
     """Миксин: панель результатов измерений над основным графиком.
 
-    График результатов метода 1: две линии по точкам (с кружками-
-    маркерами) в цветах доп. трасс 1 и 2. Ось X — порядковые номера
-    строк таблицы (не частоты), ось Y — амплитуды столбцов Usn/Un.
-    Шкала Y подгоняется при каждом обновлении данных: минимальное
-    измеренное значение − RES_MARGIN … максимальное + RES_MARGIN.
-    Строка без измеренного значения даёт точку на нижней границе
-    шкалы (текущий y_min).
+    Общая инфраструктура графика результатов: полотно, оси, пулы
+    линий сетки, полоса кнопок (скриншот). Отрисовка данных — у
+    рендеров методов: RES_RENDERERS отображает номер активного метода
+    в имя метода-рендера на окне (см. gui/mixins/results/method1.py).
+    Активный метод — открытая секция «Метод измерений N»: PanelsMixin
+    подписывается на header_button.toggled и вызывает _set_active_method.
 
     Предполагается, что у окна есть:
     - self.widget_4 (контейнер над графиком из .ui-файла);
-    - self._m1_table (Method1Mixin) — источник данных;
+    - рендеры методов (миксины gui/mixins/results/*).
     """
 
     RESULTS_COLLAPSED = True   # True — стартовать свёрнутым
 
-    RES_SYMBOL = 'o'
-    RES_SYMBOL_SIZE = 3
+    # Номер метода -> имя метода-рендера на окне
+    RES_RENDERERS = {1: 'results_refresh_m1'}
 
     def settings_results(self) -> None:
-        """Обернуть widget_4 в секцию с графиком результатов метода 1."""
+        """Обернуть widget_4 в секцию с графиком результатов."""
         layout = self.widget_4.layout()
         if layout is None:
             layout = QVBoxLayout(self.widget_4)
@@ -58,7 +57,8 @@ class ResultsMixin:
         for side in ('top', 'right'):
             ax = pi.getAxis(side)
             ax.setStyle(showValues=False, tickLength=0)
-        # Ось Y: тики снаружи, кратные 10; цвет подписей — как у сетки
+        self.results_plot.getPlotItem().getAxis('top').setHeight(RES_AXIS_H)
+        # Ось Y: тики снаружи; цвет подписей задаёт рендер метода
         ax_left = pi.getAxis('left')
         ax_left.setStyle(tickLength=0)
         self.results_plot.setMouseEnabled(x=True, y=False)
@@ -71,25 +71,17 @@ class ResultsMixin:
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.results_plot.setLabel('left', 'Амплитуда')
 
-        # Ось X: компактный шрифт тиков и нулевой отступ — ниже ось не станет
+        # Ось X: компактная колонка, без засечек и зазора до подписей
         ax_bottom = pi.getAxis('bottom')
         ax_bottom.setStyle(tickTextOffset=0, tickLength=0)
         ax_bottom.setTickFont(QFont())
-        ax_bottom.setHeight(14)
+        ax_bottom.setHeight(RES_AXIS_H)
 
-        self._res_curve1 = self.results_plot.plot(
-            [], [], pen=pg.mkPen(Style.ACC_TRACE_COLOR_1, width=1),
-            symbol=self.RES_SYMBOL, symbolSize=self.RES_SYMBOL_SIZE,
-            symbolBrush=Style.ACC_TRACE_COLOR_1,
-            symbolPen=pg.mkPen(Style.ACC_TRACE_COLOR_1, width=0.5))
-        self._res_curve2 = self.results_plot.plot(
-            [], [], pen=pg.mkPen(Style.ACC_TRACE_COLOR_2, width=1),
-            symbol=self.RES_SYMBOL, symbolSize=self.RES_SYMBOL_SIZE,
-            symbolBrush=Style.ACC_TRACE_COLOR_2,
-            symbolPen=pg.mkPen(Style.ACC_TRACE_COLOR_2, width=0.5))
-
+        # Элементы данных рендеров (кривые и т.п.) и активный метод
+        self._res_render_items: dict[int, list] = {}
         self._res_y_min: float | None = None
         self._res_y_max: float | None = None
+        self._active_method_num: int | None = None
 
         lay.addWidget(self.results_plot)
         self._build_res_actions()
@@ -103,71 +95,67 @@ class ResultsMixin:
         layout.setSpacing(0)
         layout.addWidget(self.sec_results)
 
-    # --- Хуки для Method1Mixin -------------------------------------------
+    # --- Диспетчер активного метода ---------------------------------------
 
-    def _results_expand(self) -> None:
-        """Раскрыть секцию результатов (старт измерений S/N)."""
-        if getattr(self, 'sec_results', None) is not None:
-            self.sec_results._toggle(True)
+    def _set_active_method(self, num: int, checked: bool) -> None:
+        """Раскрыта секция метода num: сменить активный метод, перерисовать.
+
+        Секция закрылась — активность не трогаем: в эксклюзивной группе
+        закрытие одной секции всегда сопровождается раскрытием другой,
+        чей toggled(True) придёт следом.
+        """
+        if not checked:
+            return
+        self._active_method_num = num
+        self._results_reset()
+        self._results_refresh()
 
     def _results_refresh(self) -> None:
-        """Перестроить кривые по таблице метода 1 и подогнать шкалу Y.
+        """Прорисовать график результатов активным методом.
 
-        X — номера строк (1…N); края окна совпадают с крайними точками:
-        первая лежит на оси Y, последняя — на правой границе сетки.
-        Ось Y — только границы шкалы (min − RES_MARGIN … max + RES_MARGIN),
-        без промежуточных подписей. Пустая ячейка даёт точку на y_min.
+        Вызывается методами при изменении их данных: добавление строки
+        в таблицу, кадр измерения, загрузка файла. Активный метод
+        задаётся раскрытием его секции (_set_active_method).
         """
         if getattr(self, 'results_plot', None) is None:
             return   # settings_results ещё не выполнялся
-        t = getattr(self, '_m1_table', None)
-        n = t.rowCount() if t is not None else 0
-        axis_bottom = self.results_plot.getAxis('bottom')
+        handler = self.RES_RENDERERS.get(
+            getattr(self, '_active_method_num', None))
+        if handler is not None:
+            getattr(self, handler)()
 
-        if n == 0:
-            self._res_curve1.setData([], [])
-            self._res_curve2.setData([], [])
-            for line in self._res_vgrid + self._res_hgrid:
-                line.setVisible(False)
-            self.results_plot.getAxis('left').setTicks([[]])
-            axis_bottom.setTicks([[]])
-            self._res_y_min = self._res_y_max = None
-            return
+    def _results_reset(self) -> None:
+        """Очистить график результатов, сохранив общую инфраструктуру.
 
-        x = list(range(1, n + 1))
-        y1 = self._results_column(t, 1)
-        y2 = self._results_column(t, 2)
-
-        nums = [v for v in (y1 + y2) if v is not None]
-        if not nums:
-            if getattr(self, '_res_y_min', None) is None:
-                # Ни одного значения и шкалы ещё нет — рисовать нечего
-                self._res_curve1.setData([], [])
-                self._res_curve2.setData([], [])
-                axis_bottom.setTicks([[(i, str(i)) for i in x]])
-                return
-            ymin, ymax = self._res_y_min, self._res_y_max
-            self.results_plot.getAxis('left').setTicks(
-                [self._res_y_ticks(ymin, ymax)])
-        else:
-            ymin = self._floor5(min(nums))
-            ymax = self._ceil5(max(nums))
-
-        self._res_y_min, self._res_y_max = ymin, ymax
-
-        self._res_curve1.setData(
-            x, [v if v is not None else ymin for v in y1])
-        self._res_curve2.setData(
-            x, [v if v is not None else ymin for v in y2])
-        axis_bottom.setTicks([[(i, str(i)) for i in x]])
+        Убирает все элементы данных рендеров (кривые и т.п.), прячет
+        пулы линий сетки, чистит тики и шкалу, сбрасывает лимиты X.
+        """
+        for items in self._res_render_items.values():
+            for item in items:
+                self.results_plot.removeItem(item)
+        self._res_render_items.clear()
+        for line in self._res_vgrid + self._res_hgrid:
+            line.setVisible(False)
+        self.results_plot.getAxis('left').setTicks([[]])
+        self.results_plot.getAxis('bottom').setTicks([[]])
+        self._res_y_min = self._res_y_max = None
         self.results_plot.getPlotItem().getViewBox().setLimits(
-            xMin=1, xMax=n)
-        self.results_plot.setRange(
-            xRange=(1, n), yRange=(ymin, ymax), padding=0)
-        self.results_plot.showGrid(x=False, y=False)
-        self._place_res_grid(x, ymin, ymax)
-        self.results_plot.getAxis('left').setTicks(
-            [self._res_y_ticks(ymin, ymax)])
+            xMin=0, xMax=1)
+
+        # Сценическая надпись рендера метода 1: не удаляется, а прячется —
+        # при следующем refresh рендер покажет её заново
+        lbl = getattr(self, '_m1_res_label', None)
+        if lbl is not None:
+            lbl.setVisible(False)
+
+    # --- Хуки для методов измерений ---------------------------------------
+
+    def _results_expand(self) -> None:
+        """Раскрыть секцию результатов (старт измерений S/N и т.п.)."""
+        if getattr(self, 'sec_results', None) is not None:
+            self.sec_results._toggle(True)
+
+    # --- Общие хелперы шкалы -----------------------------------------------
 
     @staticmethod
     def _res_y_ticks(ymin: float, ymax: float) -> list:
@@ -186,19 +174,6 @@ class ResultsMixin:
         """Ближайшее большее кратное 5; само кратное — на 5 выше."""
         y = 5 * ((v + 4.9999999) // 5)   # безопасный ceil для float
         return y if y > v else y + 5
-
-    @staticmethod
-    def _results_column(t, col: int) -> list:
-        """Столбец col таблицы списком float/None (пустая ячейка — None)."""
-        out = []
-        for r in range(t.rowCount()):
-            it = t.item(r, col)
-            txt = it.text().strip() if it is not None else ''
-            try:
-                out.append(float(txt.replace(',', '.')))
-            except ValueError:
-                out.append(None)
-        return out
 
     # --- Кнопка скриншота поверх графика результатов ---------------------
 
@@ -242,7 +217,8 @@ class ResultsMixin:
             col.setVisible(False)
             return
         x = w.width() - PLOT_ACTIONS_STRIP_W + PLOT_BTN_GAP
-        col.setGeometry(x, 4, PLOT_BTN_SIZE, col.sizeHint().height())
+        col.setGeometry(x, RES_AXIS_H + 4,
+                        PLOT_BTN_SIZE, col.sizeHint().height())
         col.setVisible(True)
         col.raise_()
 

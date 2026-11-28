@@ -365,10 +365,18 @@ class PlotActionsMixin:
         return hi >= main_freqs[0] and lo <= main_freqs[-1]
 
     def _but_open_screen_data_clicked(self) -> None:
-        """Диалог загрузки снимка экрана из JSON."""
+        """Выбрать файл снимка и загрузить его."""
         path, _ = QFileDialog.getOpenFileName(
-            self, 'Открыть данные экрана',
-            self.work_dir(), 'JSON (*.json)')
+            self, 'Загрузка снимка', self.work_dir(), 'JSON (*.json)')
+        if not path:
+            return
+        self._load_screen_file(path)
+
+    def _load_screen_file(self, path: str) -> None:
+        """Загрузить снимок path на основной график."""
+        # path, _ = QFileDialog.getOpenFileName(
+        #     self, 'Открыть данные экрана',
+        #     self.work_dir(), 'JSON (*.json)')
         if not path:
             return
         try:

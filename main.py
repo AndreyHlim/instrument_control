@@ -13,6 +13,7 @@ from gui.mixins.methods.method1 import Method1Mixin
 from gui.mixins.panels_mixin import PanelsMixin
 from gui.mixins.plot_actions_mixin import PlotActionsMixin
 from gui.mixins.plot_mixin import PlotMixin
+from gui.mixins.results.method1 import Method1ResultsMixin
 from gui.mixins.results_mixin import ResultsMixin
 from gui.mixins.signals_mixin import SignalsMixin
 from gui.mixins.state_mixin import StateMixin
@@ -24,7 +25,7 @@ class MainWindow(
     QMainWindow, PanelsMixin, WaterfallMixin, ResultsMixin, PlotMixin,
     PlotActionsMixin, StateMixin, ControlsMixin, MarkersMixin,
     ConnectionMixin, SignalsMixin, AccTracesMixin, WorkDirMixin,
-    Method1Mixin,
+    Method1ResultsMixin, Method1Mixin,
 ):
     def __init__(self):
         super().__init__()
