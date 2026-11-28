@@ -1,32 +1,297 @@
-from PyQt6.QtWidgets import QVBoxLayout, QWidget
+import os
 
+import pyqtgraph as pg
+from PyQt6.QtCore import QSize, Qt, QTimer
+from PyQt6.QtGui import QFont, QIcon
+from PyQt6.QtWidgets import (QFileDialog, QSizePolicy, QToolButton,
+                             QVBoxLayout, QWidget)
+
+from function import resource_path
 from gui.controls.controls import CollapsibleSection
+from gui.styles import (COL_SPACING, PLOT_ACTIONS_STRIP_W, PLOT_BTN_GAP,
+                        PLOT_BTN_ICON_SIZE, PLOT_BTN_SIZE, Style,
+                        plot_background_color, plot_grid_pen)
 
 
 class ResultsMixin:
     """Миксин: панель результатов измерений над основным графиком.
 
+    График результатов метода 1: две линии по точкам (с кружками-
+    маркерами) в цветах доп. трасс 1 и 2. Ось X — порядковые номера
+    строк таблицы (не частоты), ось Y — амплитуды столбцов Usn/Un.
+    Шкала Y подгоняется при каждом обновлении данных: минимальное
+    измеренное значение − RES_MARGIN … максимальное + RES_MARGIN.
+    Строка без измеренного значения даёт точку на нижней границе
+    шкалы (текущий y_min).
+
     Предполагается, что у окна есть:
-    - self.widget_4 (контейнер над графиком из .ui-файла).
+    - self.widget_4 (контейнер над графиком из .ui-файла);
+    - self._m1_table (Method1Mixin) — источник данных;
     """
 
     RESULTS_COLLAPSED = True   # True — стартовать свёрнутым
 
-    def settings_results(self) -> None:
-        """Обернуть widget_4 в сворачивающуюся секцию (заготовка).
+    RES_SYMBOL = 'o'
+    RES_SYMBOL_SIZE = 3
 
-        Контент секции — пустой контейнер self._results_content;
-        в будущем сюда добавится линейный график результатов.
-        """
+    def settings_results(self) -> None:
+        """Обернуть widget_4 в секцию с графиком результатов метода 1."""
         layout = self.widget_4.layout()
         if layout is None:
             layout = QVBoxLayout(self.widget_4)
             layout.setContentsMargins(0, 0, 0, 0)
 
         self._results_content = QWidget()
-        self._results_content.setMinimumHeight(200)
+        lay = QVBoxLayout(self._results_content)
+        lay.setContentsMargins(0, 0, 0, 0)
+
+        self.results_plot = pg.PlotWidget()
+        self.results_plot.setBackground(plot_background_color())
+        pi = self.results_plot.getPlotItem()
+        # Полоса справа — под кнопку скриншота (как у основного графика)
+        pi.layout.setContentsMargins(0, 5, PLOT_ACTIONS_STRIP_W, 5)
+        pi.hideButtons()
+        pi.getViewBox().setMenuEnabled(False)
+        # Границы области: пустые оси top/right (как у основного графика)
+        pi.showAxis('top')
+        pi.showAxis('right')
+        for side in ('top', 'right'):
+            ax = pi.getAxis(side)
+            ax.setStyle(showValues=False, tickLength=0)
+        # Ось Y: тики снаружи, кратные 10; цвет подписей — как у сетки
+        ax_left = pi.getAxis('left')
+        ax_left.setStyle(tickLength=0)
+        self.results_plot.setMouseEnabled(x=True, y=False)
+        # Собственная сетка (пулы линий): встроенная showGrid в pyqtgraph
+        # 0.13.7+ рисует линии и на минорных тиках — между основными
+        self._res_grid_pen = plot_grid_pen()
+        self._res_vgrid: list = []
+        self._res_hgrid: list = []
+        self.results_plot.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self.results_plot.setLabel('left', 'Амплитуда')
+
+        # Ось X: компактный шрифт тиков и нулевой отступ — ниже ось не станет
+        ax_bottom = pi.getAxis('bottom')
+        ax_bottom.setStyle(tickTextOffset=0, tickLength=0)
+        ax_bottom.setTickFont(QFont())
+        ax_bottom.setHeight(14)
+
+        self._res_curve1 = self.results_plot.plot(
+            [], [], pen=pg.mkPen(Style.ACC_TRACE_COLOR_1, width=1),
+            symbol=self.RES_SYMBOL, symbolSize=self.RES_SYMBOL_SIZE,
+            symbolBrush=Style.ACC_TRACE_COLOR_1,
+            symbolPen=pg.mkPen(Style.ACC_TRACE_COLOR_1, width=0.5))
+        self._res_curve2 = self.results_plot.plot(
+            [], [], pen=pg.mkPen(Style.ACC_TRACE_COLOR_2, width=1),
+            symbol=self.RES_SYMBOL, symbolSize=self.RES_SYMBOL_SIZE,
+            symbolBrush=Style.ACC_TRACE_COLOR_2,
+            symbolPen=pg.mkPen(Style.ACC_TRACE_COLOR_2, width=0.5))
+
+        self._res_y_min: float | None = None
+        self._res_y_max: float | None = None
+
+        lay.addWidget(self.results_plot)
+        self._build_res_actions()
 
         self.sec_results = CollapsibleSection("Результаты измерений")
+        # График — вплотную к рамке секции: без полей сетки контента
+        self.sec_results.content_layout.setContentsMargins(1, 0, 1, 1)
+        self.sec_results.content_layout.setSpacing(0)
         self.sec_results.add_row_layout('', self._results_content)
         self.sec_results._toggle(not self.RESULTS_COLLAPSED)
+        layout.setSpacing(0)
         layout.addWidget(self.sec_results)
+
+    # --- Хуки для Method1Mixin -------------------------------------------
+
+    def _results_expand(self) -> None:
+        """Раскрыть секцию результатов (старт измерений S/N)."""
+        if getattr(self, 'sec_results', None) is not None:
+            self.sec_results._toggle(True)
+
+    def _results_refresh(self) -> None:
+        """Перестроить кривые по таблице метода 1 и подогнать шкалу Y.
+
+        X — номера строк (1…N); края окна совпадают с крайними точками:
+        первая лежит на оси Y, последняя — на правой границе сетки.
+        Ось Y — только границы шкалы (min − RES_MARGIN … max + RES_MARGIN),
+        без промежуточных подписей. Пустая ячейка даёт точку на y_min.
+        """
+        if getattr(self, 'results_plot', None) is None:
+            return   # settings_results ещё не выполнялся
+        t = getattr(self, '_m1_table', None)
+        n = t.rowCount() if t is not None else 0
+        axis_bottom = self.results_plot.getAxis('bottom')
+
+        if n == 0:
+            self._res_curve1.setData([], [])
+            self._res_curve2.setData([], [])
+            for line in self._res_vgrid + self._res_hgrid:
+                line.setVisible(False)
+            self.results_plot.getAxis('left').setTicks([[]])
+            axis_bottom.setTicks([[]])
+            self._res_y_min = self._res_y_max = None
+            return
+
+        x = list(range(1, n + 1))
+        y1 = self._results_column(t, 1)
+        y2 = self._results_column(t, 2)
+
+        nums = [v for v in (y1 + y2) if v is not None]
+        if not nums:
+            if getattr(self, '_res_y_min', None) is None:
+                # Ни одного значения и шкалы ещё нет — рисовать нечего
+                self._res_curve1.setData([], [])
+                self._res_curve2.setData([], [])
+                axis_bottom.setTicks([[(i, str(i)) for i in x]])
+                return
+            ymin, ymax = self._res_y_min, self._res_y_max
+            self.results_plot.getAxis('left').setTicks(
+                [self._res_y_ticks(ymin, ymax)])
+        else:
+            ymin = self._floor5(min(nums))
+            ymax = self._ceil5(max(nums))
+
+        self._res_y_min, self._res_y_max = ymin, ymax
+
+        self._res_curve1.setData(
+            x, [v if v is not None else ymin for v in y1])
+        self._res_curve2.setData(
+            x, [v if v is not None else ymin for v in y2])
+        axis_bottom.setTicks([[(i, str(i)) for i in x]])
+        self.results_plot.getPlotItem().getViewBox().setLimits(
+            xMin=1, xMax=n)
+        self.results_plot.setRange(
+            xRange=(1, n), yRange=(ymin, ymax), padding=0)
+        self.results_plot.showGrid(x=False, y=False)
+        self._place_res_grid(x, ymin, ymax)
+        self.results_plot.getAxis('left').setTicks(
+            [self._res_y_ticks(ymin, ymax)])
+
+    @staticmethod
+    def _res_y_ticks(ymin: float, ymax: float) -> list:
+        """Тики оси Y: ровные значения, кратные 10, внутри шкалы."""
+        start = int(-((-ymin) // 10)) * 10   # ceil(ymin/10)*10
+        return [(y, f'{y:g}') for y in range(start, int(ymax) + 1, 10)]
+
+    @staticmethod
+    def _floor5(v: float) -> float:
+        """Ближайшее меньшее кратное 5; само кратное — на 5 ниже."""
+        y = 5 * (v // 5)
+        return y - 5 if y == v else y
+
+    @staticmethod
+    def _ceil5(v: float) -> float:
+        """Ближайшее большее кратное 5; само кратное — на 5 выше."""
+        y = 5 * ((v + 4.9999999) // 5)   # безопасный ceil для float
+        return y if y > v else y + 5
+
+    @staticmethod
+    def _results_column(t, col: int) -> list:
+        """Столбец col таблицы списком float/None (пустая ячейка — None)."""
+        out = []
+        for r in range(t.rowCount()):
+            it = t.item(r, col)
+            txt = it.text().strip() if it is not None else ''
+            try:
+                out.append(float(txt.replace(',', '.')))
+            except ValueError:
+                out.append(None)
+        return out
+
+    # --- Кнопка скриншота поверх графика результатов ---------------------
+
+    def _build_res_actions(self) -> None:
+        """Плавающая колонка кнопок в правой полосе графика результатов.
+
+        Приём как в PlotActionsMixin: пустая полоса правого поля осей,
+        кнопки — дети plotWidget, в layout не входят. Позиционирование
+        в singleShot(0) и далее на каждый resize (sigResized ViewBox).
+        """
+        col = QWidget(self.results_plot)
+        lay = QVBoxLayout(col)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(COL_SPACING)
+
+        self._but_res_screen = QToolButton(col)
+        self._but_res_screen.setToolTip('Сохранить график результатов в PNG')
+        self._but_res_screen.setStyleSheet(Style.BUT_ICON)
+        self._but_res_screen.setFixedSize(PLOT_BTN_SIZE, PLOT_BTN_SIZE)
+        self._but_res_screen.setIcon(
+            QIcon(resource_path('gui/icons/screen.png')))
+        self._but_res_screen.setIconSize(
+            QSize(PLOT_BTN_ICON_SIZE, PLOT_BTN_ICON_SIZE))
+        self._but_res_screen.clicked.connect(self._but_res_screen_clicked)
+        lay.addWidget(self._but_res_screen)
+
+        col.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        col.raise_()
+        self._res_actions_col = col
+        QTimer.singleShot(0, self._place_res_actions_col)
+        self.results_plot.getPlotItem().getViewBox().sigResized.connect(
+            self._place_res_actions_col)
+
+    def _place_res_actions_col(self) -> None:
+        """Уложить колонку кнопок в правую полосу графика результатов."""
+        col = getattr(self, '_res_actions_col', None)
+        if col is None:
+            return
+        w = self.results_plot
+        if w.width() < PLOT_ACTIONS_STRIP_W:
+            col.setVisible(False)
+            return
+        x = w.width() - PLOT_ACTIONS_STRIP_W + PLOT_BTN_GAP
+        col.setGeometry(x, 4, PLOT_BTN_SIZE, col.sizeHint().height())
+        col.setVisible(True)
+        col.raise_()
+
+    def _but_res_screen_clicked(self) -> None:
+        """Диалог сохранения графика результатов в PNG."""
+        path, _ = QFileDialog.getSaveFileName(
+            self, 'Сохранить график',
+            os.path.join(self.work_dir(), 'График результатов_'),
+            'PNG (*.png)')
+        if not path:
+            return
+        if not path.lower().endswith('.png'):
+            path += '.png'
+        self.results_plot.grab().save(path)
+        self._adopt_dialog_dir(path)
+
+    def _place_res_grid(self, x: list, ymin: float, ymax: float) -> None:
+        """Собственная сетка графика результатов.
+
+        Вертикали — по одной на строку таблицы (позиции совпадают с
+        тиками оси X), горизонтали — на позициях тиков Y (кратные 10).
+        Пулы линий при необходимости растут; лишние прячутся, как в
+        _update_y_grid основного графика.
+        """
+        # Вертикали: одна на строку таблицы
+        while len(self._res_vgrid) < len(x):
+            line = pg.InfiniteLine(angle=90, movable=False,
+                                   pen=self._res_grid_pen)
+            line.setVisible(False)
+            self.results_plot.addItem(line)
+            self._res_vgrid.append(line)
+        for i, line in enumerate(self._res_vgrid):
+            if i < len(x):
+                line.setPos(x[i])
+                line.setVisible(True)
+            else:
+                line.setVisible(False)
+
+        # Горизонтали: на позициях тиков оси Y
+        ys = [y for y, _ in self._res_y_ticks(ymin, ymax)]
+        while len(self._res_hgrid) < len(ys):
+            line = pg.InfiniteLine(angle=0, movable=False,
+                                   pen=self._res_grid_pen)
+            line.setVisible(False)
+            self.results_plot.addItem(line)
+            self._res_hgrid.append(line)
+        for i, line in enumerate(self._res_hgrid):
+            if i < len(ys):
+                line.setPos(ys[i])
+                line.setVisible(True)
+            else:
+                line.setVisible(False)

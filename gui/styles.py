@@ -7,7 +7,7 @@ from function import resource_path
 FRAME_RADIUS = 0
 BORDER_COLOR = '#777777'
 HEADER_COLOR = '#2c3e50'      # цвет заголовков секций
-COLOR_BG = '#ffffff'       # фон выключенных контролов
+COLOR_BG = '#ffffff'          # фон выключенных контролов
 DISABLED_BG = '#c4c4c4'       # фон выключенных контролов
 DISABLED_FG = '#777777'       # текст выключенных контролов
 HEADER_BG = '#e8eef5'         # фон полосы заголовка
@@ -342,9 +342,9 @@ class Style(StrEnum):
     MAIN_TRACE_COLOR = "#5353fd"    # основной график трассы
     ACC_TRACE_COLOR_1 = '#d9822b'   # кривая доп. трассы 1
     ACC_TRACE_COLOR_2 = '#4aa52f'   # кривая доп. трассы 2
-    MARKER_COLOR_1 = "#b83dc4"   # маркер М1
-    MARKER_COLOR_2 = "#00a0a0"   # маркер М2
-    M1_ROW_HIGHLIGHT = '#fff9c4'   # подсветка измеряемой строки таблицы
+    MARKER_COLOR_1 = "#b83dc4"      # маркер М1
+    MARKER_COLOR_2 = "#00a0a0"      # маркер М2
+    M1_ROW_HIGHLIGHT = '#fff9c4'    # подсветка измеряемой строки таблицы
 
     PLOT_LABEL_COLOR = CTRL_ENABLE_TEXT     # метки CF/Span/Div/RBW-VBW
     PLOT_ERRORS_LABEL_COLOR = "#ff0000"   # UNCAL, OVLD, ... — индикация ошибок

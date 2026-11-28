@@ -191,6 +191,7 @@ class Method1Mixin:
         t.setItem(idx, 0, freq_it)
         t.setItem(idx, 1, it_usn)
         t.setItem(idx, 2, it_un)
+        self._results_refresh()
         return idx
 
     def _m1_select_row(self, idx: int) -> None:
@@ -216,6 +217,7 @@ class Method1Mixin:
     def _m1_clear_table(self) -> None:
         self._m1_freqs.clear()
         self._m1_table.setRowCount(0)
+        self._results_refresh()
 
     # --- Кнопки добавления частот ------------------------------------------
 
@@ -295,6 +297,7 @@ class Method1Mixin:
             self._m1_table.removeRow(r)
             # параллельный список режется тем же порядком
             self._m1_freqs.pop(r)
+        self._results_refresh()
 
     def _m1_on_cell_double_clicked(self, row: int, col: int) -> None:
         """Двойной клик по частоте: перестроить прибор на эту частоту."""
@@ -350,6 +353,7 @@ class Method1Mixin:
             added += 1
         if added:
             self._m1_select_row(first)
+            self._results_expand()
         if skipped:
             QMessageBox.information(
                 self, 'Метод измерений 1',
@@ -504,6 +508,7 @@ class Method1Mixin:
             return
         if not self._m1_confirm(kind):
             return
+        self._results_expand()
 
         self._m1_seq_stop = False
         m1 = self._marker_entries[1]
@@ -690,6 +695,7 @@ class Method1Mixin:
             it = self._m1_table.item(row, seq['col'])
             if it is not None:
                 it.setText('' if amp is None else self._m1_fmt_amp(amp))
+            self._results_refresh()
             self._m1_save_screenshot()
             seq['idx'] += 1
             seq['phase'] = 'idle'
